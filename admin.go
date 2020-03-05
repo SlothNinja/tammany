@@ -1,21 +1,52 @@
 package tammany
 
 import (
+	"time"
+
 	"github.com/SlothNinja/game"
 	"github.com/SlothNinja/log"
-	"github.com/SlothNinja/restful"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 )
 
 func (g *Game) adminState(c *gin.Context) (string, game.ActionType, error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
-	h := game.NewHeader(c, nil, 0)
-	if err := restful.BindWith(c, h, binding.FormPost); err != nil {
+	h := struct {
+		Title         string           `form:"title"`
+		Turn          int              `form:"turn"" binding:"min=0"`
+		Phase         game.Phase       `form:"phase" binding:"min=0"`
+		SubPhase      game.SubPhase    `form:"sub-phase" binding:"min=0"`
+		Round         int              `form:"round" binding:"min=0"`
+		NumPlayers    int              `form:"num-players" binding"min=0,max=5"`
+		Password      string           `form:"password"`
+		CreatorID     int64            `form:"creator-id"`
+		CreatorSID    string           `form:"creator-sid"`
+		CreatorName   string           `form:"creator-name"`
+		UserIDS       []int64          `form:"user-ids"`
+		UserSIDS      []string         `form:"user-sids"`
+		UserNames     []string         `form:"user-names"`
+		UserEmails    []string         `form:"user-emails"`
+		OrderIDS      game.UserIndices `form:"order-ids"`
+		CPUserIndices game.UserIndices `form:"cp-user-indices"`
+		WinnerIDS     game.UserIndices `form:"winner-ids"`
+		Status        game.Status      `form:"status"`
+		Progress      string           `form:"progress"`
+		Options       []string         `form:"options"`
+		OptString     string           `form:"opt-string"`
+		CreatedAt     time.Time        `form:"created-at"`
+		UpdatedAt     time.Time        `form:"updated-at"`
+	}{}
+
+	err := c.ShouldBind(&h)
+	if err != nil {
 		return "", game.None, err
 	}
+
+	// h := game.NewHeader(c, nil, 0)
+	// if err := restful.BindWith(c, h, binding.FormPost); err != nil {
+	// 	return "", game.None, err
+	// }
 
 	g.UserIDS = h.UserIDS
 	g.Title = h.Title
@@ -49,35 +80,50 @@ func newChips() *chips {
 func (g *Game) adminPlayer(c *gin.Context) (string, game.ActionType, error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
+	obj := struct {
+		PlacedBosses     int   `form:"placed-bosses"`
+		PlacedImmigrants int   `form:"placed-immigrants"`
+		LockedUp         int   `form:"lockedup"`
+		Slandered        int   `form:"slandered"`
+		Candidate        bool  `form:"candidate"`
+		HasBid           bool  `form:"has-bid"`
+		UsedOffice       bool  `form:"used-office"`
+		IDF              int   `form:"idf"`
+		PerformedAction  bool  `form:"performed-action"`
+		Score            int   `form:"score"`
+		Passed           bool  `form:"passed"`
+		Chips            []int `form:"chips"`
+		PlayedChips      []int `form:"played-chips"`
+	}{}
 
-	p := newPlayer()
-	chips := newChips()
-	if err := restful.BindWith(c, p.Player, binding.FormPost); err != nil {
-		return "", game.None, err
-	}
+	// p := newPlayer()
+	// chips := newChips()
+	// if err := restful.BindWith(c, p.Player, binding.FormPost); err != nil {
+	// 	return "", game.None, err
+	// }
 
-	if err := restful.BindWith(c, p, binding.FormPost); err != nil {
-		return "", game.None, err
-	}
+	// if err := restful.BindWith(c, p, binding.FormPost); err != nil {
+	// 	return "", game.None, err
+	// }
 
-	if err := restful.BindWith(c, chips, binding.FormPost); err != nil {
-		return "", game.None, err
-	}
+	// if err := restful.BindWith(c, chips, binding.FormPost); err != nil {
+	// 	return "", game.None, err
+	// }
 
-	p2 := g.PlayerByID(p.ID())
+	p2 := g.PlayerByID(obj.IDF)
 
 	for i, n := range g.Nationalities() {
-		p2.Chips[n] = chips.Chips[i]
-		p2.PlayedChips[n] = chips.PlayedChips[i]
+		p2.Chips[n] = obj.Chips[i]
+		p2.PlayedChips[n] = obj.PlayedChips[i]
 	}
 
-	p2.Score = p.Score
-	p2.PerformedAction = p.PerformedAction
-	p2.Candidate = p.Candidate
-	p2.UsedOffice = p.UsedOffice
-	p2.PlacedBosses = p.PlacedBosses
-	p2.PlacedImmigrants = p.PlacedImmigrants
-	p2.HasBid = p.HasBid
+	p2.Score = obj.Score
+	p2.PerformedAction = obj.PerformedAction
+	p2.Candidate = obj.Candidate
+	p2.UsedOffice = obj.UsedOffice
+	p2.PlacedBosses = obj.PlacedBosses
+	p2.PlacedImmigrants = obj.PlacedImmigrants
+	p2.HasBid = obj.HasBid
 
 	return "", game.Save, nil
 }
@@ -86,7 +132,7 @@ func (g *Game) adminWard(c *gin.Context) (string, game.ActionType, error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
-	var w2 struct {
+	w2 := struct {
 		ID       wardID `form:"ward-id"`
 		Irish    int    `form:"Irish"`
 		English  int    `form:"English"`
@@ -95,11 +141,16 @@ func (g *Game) adminWard(c *gin.Context) (string, game.ActionType, error) {
 		Bosses   []int  `form:"bosses"`
 		Resolved bool   `form:"resolved"`
 		LockedUp bool   `form:"lockedup"`
-	}
+	}{}
 
-	if err := restful.BindWith(c, &w2, binding.FormPost); err != nil {
+	err := c.ShouldBind(&w2)
+	if err != nil {
 		return "", game.None, err
 	}
+
+	// if err := restful.BindWith(c, &w2, binding.FormPost); err != nil {
+	// 	return "", game.None, err
+	// }
 
 	w1 := g.wardByID(w2.ID)
 	w1.Immigrants[irish] = w2.Irish
@@ -121,16 +172,21 @@ func (g *Game) adminCastleGarden(c *gin.Context) (string, game.ActionType, error
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
-	var cg struct {
+	cg := struct {
 		Irish   int `form:"Irish"`
 		English int `form:"English"`
 		German  int `form:"German"`
 		Italian int `form:"Italian"`
-	}
+	}{}
 
-	if err := restful.BindWith(c, &cg, binding.FormPost); err != nil {
+	err := c.ShouldBind(&cg)
+	if err != nil {
 		return "", game.None, err
 	}
+
+	// if err := restful.BindWith(c, &cg, binding.FormPost); err != nil {
+	// 	return "", game.None, err
+	// }
 
 	g.CastleGarden[irish] = cg.Irish
 	g.CastleGarden[german] = cg.German
@@ -144,16 +200,21 @@ func (g *Game) adminImmigrantBag(c *gin.Context) (string, game.ActionType, error
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
-	var cg struct {
+	cg := struct {
 		Irish   int `form:"Irish"`
 		English int `form:"English"`
 		German  int `form:"German"`
 		Italian int `form:"Italian"`
-	}
+	}{}
 
-	if err := restful.BindWith(c, &cg, binding.FormPost); err != nil {
+	err := c.ShouldBind(&cg)
+	if err != nil {
 		return "", game.None, err
 	}
+
+	// if err := restful.BindWith(c, &cg, binding.FormPost); err != nil {
+	// 	return "", game.None, err
+	// }
 
 	g.Bag[irish] = cg.Irish
 	g.Bag[german] = cg.German
