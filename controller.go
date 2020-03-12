@@ -439,7 +439,7 @@ func create(prefix string) (f gin.HandlerFunc) {
 		g := New(c, 0)
 		withGame(c, g)
 
-		err := g.FromParams(c, g.Type)
+		err := g.FromForm(c, g.Type)
 		if err != nil {
 			log.Errorf(err.Error())
 			c.Redirect(http.StatusSeeOther, recruitingPath(prefix))
@@ -481,8 +481,8 @@ func create(prefix string) (f gin.HandlerFunc) {
 			c.Redirect(http.StatusSeeOther, recruitingPath(prefix))
 			return
 		}
-
 		restful.AddNoticef(c, "<div>%s created.</div>", g.Title)
+		c.Redirect(http.StatusSeeOther, recruitingPath(prefix))
 	}
 }
 
