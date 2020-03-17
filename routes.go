@@ -27,7 +27,6 @@ func AddRoutes(prefix string, engine *gin.Engine) {
 
 	// Show
 	g1.GET("/game/show/:hid",
-		//game.FetchHeader(GamesRoot),
 		fetch,
 		mlog.Get,
 		game.SetAdmin(false),
@@ -36,7 +35,7 @@ func AddRoutes(prefix string, engine *gin.Engine) {
 
 	// Admin
 	g1.GET("/game/admin/:hid",
-		//game.FetchHeader(GamesRoot),
+		user.RequireAdmin,
 		fetch,
 		mlog.Get,
 		game.SetAdmin(true),
@@ -45,29 +44,12 @@ func AddRoutes(prefix string, engine *gin.Engine) {
 
 	// Undo
 	g1.POST("/game/undo/:hid",
-		//game.FetchHeader(GamesRoot),
-		//UndoUpdate(),
 		fetch,
 		undo(prefix),
 	)
 
-	//	// Redo
-	//	g1.POST("/game/redo/:hid",
-	//		//game.FetchHeader(GamesRoot),
-	//		RedoUpdate(),
-	//		Redo(prefix),
-	//	)
-	//
-	//	// Reset
-	//	g1.POST("/game/reset/:hid",
-	//		//game.FetchHeader(GamesRoot),
-	//		ResetUpdate(),
-	//		Reset(prefix),
-	//	)
-
 	// Finish
 	g1.POST("/game/finish/:hid",
-		//game.FetchHeader(GamesRoot),
 		fetch,
 		stats.Fetch(user.CurrentFrom),
 		finish(prefix),
@@ -76,7 +58,6 @@ func AddRoutes(prefix string, engine *gin.Engine) {
 	// Drop
 	g1.POST("/game/drop/:hid",
 		user.RequireCurrentUser(),
-		//game.FetchHeader(GamesRoot),
 		fetch,
 		drop(prefix),
 	)
@@ -84,7 +65,6 @@ func AddRoutes(prefix string, engine *gin.Engine) {
 	// Accept
 	g1.POST("/game/accept/:hid",
 		user.RequireCurrentUser(),
-		//game.FetchHeader(GamesRoot),
 		fetch,
 		accept(prefix),
 	)
@@ -92,7 +72,6 @@ func AddRoutes(prefix string, engine *gin.Engine) {
 	// Update
 	g1.PUT("/game/show/:hid",
 		user.RequireCurrentUser(),
-		//game.FetchHeader(GamesRoot),
 		fetch,
 		game.RequireCurrentPlayerOrAdmin(),
 		game.SetAdmin(false),
@@ -102,7 +81,6 @@ func AddRoutes(prefix string, engine *gin.Engine) {
 	// Admin Update
 	g1.POST("/game/admin/:hid",
 		user.RequireCurrentUser(),
-		//game.FetchHeader(GamesRoot),
 		fetch,
 		game.RequireCurrentPlayerOrAdmin(),
 		game.SetAdmin(true),
@@ -111,7 +89,6 @@ func AddRoutes(prefix string, engine *gin.Engine) {
 
 	g1.PUT("/game/admin/:hid",
 		user.RequireCurrentUser(),
-		//game.FetchHeader(GamesRoot),
 		fetch,
 		game.RequireCurrentPlayerOrAdmin(),
 		game.SetAdmin(true),
