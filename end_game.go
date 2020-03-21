@@ -10,7 +10,7 @@ import (
 	"github.com/SlothNinja/restful"
 	"github.com/SlothNinja/send"
 	"github.com/gin-gonic/gin"
-	"google.golang.org/appengine/mail"
+	"github.com/mailjet/mailjet-apiv3-go"
 )
 
 func init() {
@@ -161,9 +161,9 @@ func (g *Game) winners() (ps Players) {
 }
 
 func (g *Game) sendEndGameNotifications(c *gin.Context) error {
-	ms := make([]*mail.Message, len(g.Players()))
-	sender := "webmaster@slothninja.com"
+	ms := make([]mailjet.InfoMessagesV31, len(g.Players()))
 	subject := fmt.Sprintf("SlothNinja Games: Tammany Hall #%d Has Ended", g.ID)
+
 	var body string
 	body += `!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 		<html>
@@ -186,12 +186,22 @@ func (g *Game) sendEndGameNotifications(c *gin.Context) error {
 		</html>`
 
 	for i, p := range g.Players() {
-		ms[i] = &mail.Message{
-			To:       []string{p.User().Email},
-			Sender:   sender,
+		u := p.User()
+		ms[i] = mailjet.InfoMessagesV31{
+			From: &mailjet.RecipientV31{
+				Email: "webmaster@slothninja.com",
+				Name:  "Webmaster",
+			},
+			To: &mailjet.RecipientsV31{
+				mailjet.RecipientV31{
+					Email: u.Email,
+					Name:  u.Name,
+				},
+			},
 			Subject:  subject,
-			HTMLBody: body,
+			HTMLPart: body,
 		}
 	}
-	return send.Message(c, ms...)
+	_, err := send.Messages(c, ms...)
+	return err
 }
