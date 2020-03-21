@@ -96,19 +96,10 @@ func (g *Game) adminPlayer(c *gin.Context) (string, game.ActionType, error) {
 		PlayedChips      []int `form:"played-chips"`
 	}{}
 
-	// p := newPlayer()
-	// chips := newChips()
-	// if err := restful.BindWith(c, p.Player, binding.FormPost); err != nil {
-	// 	return "", game.None, err
-	// }
-
-	// if err := restful.BindWith(c, p, binding.FormPost); err != nil {
-	// 	return "", game.None, err
-	// }
-
-	// if err := restful.BindWith(c, chips, binding.FormPost); err != nil {
-	// 	return "", game.None, err
-	// }
+	err := c.ShouldBind(&obj)
+	if err != nil {
+		return "", game.None, err
+	}
 
 	p2 := g.PlayerByID(obj.IDF)
 
