@@ -2,8 +2,8 @@ package tammany
 
 import (
 	"net/http"
-	"time"
 
+	"cloud.google.com/go/datastore"
 	"github.com/SlothNinja/contest"
 	"github.com/SlothNinja/game"
 	"github.com/SlothNinja/log"
@@ -13,11 +13,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func finish(prefix string) (f gin.HandlerFunc) {
-	f = func(c *gin.Context) {
+func finish(prefix string) gin.HandlerFunc {
+	return func(c *gin.Context) {
 		log.Debugf("Entering")
 		defer log.Debugf("Exiting")
-		defer c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
 
 		g := gameFrom(c)
 		oldCP := g.CurrentPlayer()
@@ -45,6 +44,7 @@ func finish(prefix string) (f gin.HandlerFunc) {
 
 		if err != nil {
 			log.Errorf(err.Error())
+			c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
 			return
 		}
 
@@ -52,24 +52,40 @@ func finish(prefix string) (f gin.HandlerFunc) {
 		if cs != nil {
 			g.Phase = gameOver
 			g.Status = game.Completed
-			if err = g.save(c, wrap(s.GetUpdate(c, time.Time(g.UpdatedAt)), cs)...); err == nil {
-				err = g.sendEndGameNotifications(c)
+			s = s.GetUpdate(c, g.UpdatedAt)
+			ks, es := wrap(s, cs)
+			err = g.saveWith(c, ks, es)
+			if err != nil {
+				log.Errorf(err.Error())
+				c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
+				return
 			}
-		} else {
-			if err = g.save(c, s.GetUpdate(c, time.Time(g.UpdatedAt))); err == nil {
-				if newCP := g.CurrentPlayer(); newCP != nil && oldCP.ID() != newCP.ID() {
-					err = g.SendTurnNotificationsTo(c, newCP)
-				}
+			err = g.sendEndGameNotifications(c)
+			if err != nil {
+				log.Warningf(err.Error())
 			}
+			c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
+			return
 		}
 
+		s = s.GetUpdate(c, g.UpdatedAt)
+		err = g.saveWith(c, []*datastore.Key{s.Key}, []interface{}{s})
 		if err != nil {
 			log.Errorf(err.Error())
+			c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
+			return
 		}
 
-		return
+		newCP := g.CurrentPlayer()
+		if newCP != nil && oldCP.ID() != newCP.ID() {
+			err = g.SendTurnNotificationsTo(c, newCP)
+			if err != nil {
+				log.Warningf(err.Error())
+			}
+		}
+
+		c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
 	}
-	return
 }
 
 func (g *Game) validateFinishTurn(c *gin.Context) (s *stats.Stats, err error) {

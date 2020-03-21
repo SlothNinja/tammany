@@ -246,30 +246,11 @@ func update(prefix string) (f gin.HandlerFunc) {
 	}
 	return
 }
-func (g *Game) save(c *gin.Context, ps ...interface{}) error {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
 
+func (g *Game) save(c *gin.Context) error {
 	dsClient, err := datastore.NewClient(c, "")
 	if err != nil {
 		return err
-	}
-
-	l := len(ps)
-	if l%2 != 0 {
-		return fmt.Errorf("ps must have an even number of element, found %d", l)
-	}
-
-	l2 := l / 2
-	ks := make([]*datastore.Key, l2)
-	es := make([]interface{}, l2)
-	for i := range es {
-		k, ok := ps[(2 * i)].(*datastore.Key)
-		if !ok {
-			return fmt.Errorf("expected *datastore.Key, found %T", ps[(2*i)])
-		}
-		ks[i] = k
-		es[i] = ps[(2*i)+1]
 	}
 
 	_, err = dsClient.RunInTransaction(c, func(tx *datastore.Transaction) error {
@@ -280,7 +261,43 @@ func (g *Game) save(c *gin.Context, ps ...interface{}) error {
 		}
 
 		if oldG.UpdatedAt != g.UpdatedAt {
-			return fmt.Errorf("game state changed unexpectantly")
+			return fmt.Errorf("Game state changed unexpectantly.  Try again.")
+		}
+
+		err = g.encode(c)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Put(g.Key, g.Header)
+		if err != nil {
+			return err
+		}
+
+		err = memcache.Delete(appengine.NewContext(c.Request), g.UndoKey(c))
+		if err == memcache.ErrCacheMiss {
+			return nil
+		}
+		return err
+	})
+	return err
+}
+
+func (g *Game) saveWith(c *gin.Context, ks []*datastore.Key, es []interface{}) error {
+	dsClient, err := datastore.NewClient(c, "")
+	if err != nil {
+		return err
+	}
+
+	_, err = dsClient.RunInTransaction(c, func(tx *datastore.Transaction) error {
+		oldG := New(c, g.ID())
+		err := tx.Get(oldG.Key, oldG.Header)
+		if err != nil {
+			return err
+		}
+
+		if oldG.UpdatedAt != g.UpdatedAt {
+			return fmt.Errorf("Game state changed unexpectantly.  Try again.")
 		}
 
 		err = g.encode(c)
@@ -335,13 +352,17 @@ func (g *Game) cache(c *gin.Context) error {
 	return memcache.Set(appengine.NewContext(c.Request), item)
 }
 
-func wrap(s *stats.Stats, cs contest.Contests) (es []interface{}) {
-	es = make([]interface{}, len(cs)+1)
+func wrap(s *stats.Stats, cs contest.Contests) ([]*datastore.Key, []interface{}) {
+	l := len(cs) + 1
+	es := make([]interface{}, l)
+	ks := make([]*datastore.Key, l)
 	es[0] = s
+	ks[0] = s.Key
 	for i, c := range cs {
 		es[i+1] = c
+		ks[i+1] = c.Key
 	}
-	return
+	return ks, es
 }
 
 func showPath(prefix, hid string) string {

@@ -16,5 +16,6 @@ require (
 	github.com/SlothNinja/user-stats v0.0.0-20200316003629-dfe63e057543
 	github.com/gin-gonic/gin v1.5.0
 	github.com/mailjet/mailjet-apiv3-go v0.0.0-20190724151621-55e56f74078c
+	golang.org/x/sys v0.0.0-20200321134203-328b4cd54aae // indirect
 	google.golang.org/appengine v1.6.5
 )
