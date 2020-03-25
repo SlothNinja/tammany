@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 
-	"cloud.google.com/go/datastore"
 	"github.com/SlothNinja/contest"
 	"github.com/SlothNinja/game"
 	"github.com/SlothNinja/log"
@@ -17,7 +16,7 @@ import (
 )
 
 // Register registers Tammany Hall with the server.
-func (srv server) Register(t gtype.Type, r *gin.Engine, dsClient *datastore.Client) *gin.Engine {
+func (srv server) Register(t gtype.Type, r *gin.Engine) *gin.Engine {
 	gob.Register(new(Game))
 	game.Register(t, newGamer, phaseNames, nil)
 	return srv.addRoutes(t.Prefix(), r)
