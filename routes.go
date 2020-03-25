@@ -84,7 +84,7 @@ func (srv server) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
 	gs := engine.Group(prefix + "/games")
 
 	// Index
-	gs.GET("/status",
+	gs.GET("/:status",
 		gtype.SetTypes(),
 		srv.index(prefix),
 	)
