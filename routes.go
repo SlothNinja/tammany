@@ -1,6 +1,7 @@
 package tammany
 
 import (
+	"cloud.google.com/go/datastore"
 	"github.com/SlothNinja/game"
 	"github.com/SlothNinja/mlog"
 	gtype "github.com/SlothNinja/type"
@@ -9,109 +10,122 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type server struct {
+	*datastore.Client
+}
+
+func NewClient(dsClient *datastore.Client) server {
+	return server{Client: dsClient}
+}
+
 // AddRoutes addes routing for game.
-func AddRoutes(prefix string, engine *gin.Engine) {
+func (srv server) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
+	// Game Group
+	g := engine.Group(prefix + "/game")
+
 	// New
-	g1 := engine.Group(prefix)
-	g1.GET("/game/new",
+	g.GET("/new",
 		user.RequireCurrentUser(),
 		gtype.SetTypes(),
-		newAction(prefix),
+		srv.newAction(prefix),
 	)
 
 	// Create
-	g1.POST("/game",
+	g.POST("",
 		user.RequireCurrentUser(),
-		create(prefix),
+		srv.create(prefix),
 	)
 
 	// Show
-	g1.GET("/game/show/:hid",
-		fetch,
+	g.GET("/show/:hid",
+		srv.fetch,
 		mlog.Get,
 		game.SetAdmin(false),
-		show(prefix),
-	)
-
-	// Admin
-	g1.GET("/game/admin/:hid",
-		user.RequireAdmin,
-		fetch,
-		mlog.Get,
-		game.SetAdmin(true),
-		show(prefix),
+		srv.show(prefix),
 	)
 
 	// Undo
-	g1.POST("/game/undo/:hid",
-		fetch,
-		undo(prefix),
+	g.POST("/undo/:hid",
+		srv.fetch,
+		srv.undo(prefix),
 	)
 
 	// Finish
-	g1.POST("/game/finish/:hid",
-		fetch,
+	g.POST("/finish/:hid",
+		srv.fetch,
 		stats.Fetch(user.CurrentFrom),
-		finish(prefix),
+		srv.finish(prefix),
 	)
 
 	// Drop
-	g1.POST("/game/drop/:hid",
+	g.POST("/drop/:hid",
 		user.RequireCurrentUser(),
-		fetch,
-		drop(prefix),
+		srv.fetch,
+		srv.drop(prefix),
 	)
 
 	// Accept
-	g1.POST("/game/accept/:hid",
+	g.POST("/accept/:hid",
 		user.RequireCurrentUser(),
-		fetch,
-		accept(prefix),
+		srv.fetch,
+		srv.accept(prefix),
 	)
 
 	// Update
-	g1.PUT("/game/show/:hid",
+	g.PUT("/show/:hid",
 		user.RequireCurrentUser(),
-		fetch,
+		srv.fetch,
 		game.RequireCurrentPlayerOrAdmin(),
 		game.SetAdmin(false),
-		update(prefix),
+		srv.update(prefix),
 	)
 
-	// Admin Update
-	g1.POST("/game/admin/:hid",
-		user.RequireCurrentUser(),
-		fetch,
-		game.RequireCurrentPlayerOrAdmin(),
-		game.SetAdmin(true),
-		update(prefix),
-	)
-
-	g1.PUT("/game/admin/:hid",
-		user.RequireCurrentUser(),
-		fetch,
-		game.RequireCurrentPlayerOrAdmin(),
-		game.SetAdmin(true),
-		update(prefix),
-	)
+	// Games Group
+	gs := engine.Group(prefix + "/games")
 
 	// Index
-	g1.GET("/games/:status",
+	gs.GET("/status",
 		gtype.SetTypes(),
-		index(prefix),
+		srv.index(prefix),
 	)
 
 	// JSON Data for Index
-	g1.POST("games/:status/json",
+	gs.POST("/:status/json",
 		gtype.SetTypes(),
 		game.GetFiltered(gtype.Tammany),
-		jsonIndexAction(prefix),
+		srv.jsonIndexAction(prefix),
 	)
 
 	// Add Message
-	g1.PUT("/game/show/:hid/addmessage",
+	gs.PUT("/show/:hid/addmessage",
 		user.RequireCurrentUser(),
 		mlog.Get,
 		mlog.AddMessage(prefix),
 	)
+
+	// Admin Group
+	admin := g.Group("/admin", user.RequireAdmin)
+
+	// Admin Get
+	admin.GET("/:hid",
+		srv.fetch,
+		mlog.Get,
+		game.SetAdmin(true),
+		srv.show(prefix),
+	)
+
+	// Admin Update
+	admin.POST("/hid",
+		srv.fetch,
+		game.SetAdmin(true),
+		srv.update(prefix),
+	)
+
+	admin.PUT("/:hid",
+		srv.fetch,
+		game.SetAdmin(true),
+		srv.update(prefix),
+	)
+
+	return engine
 }

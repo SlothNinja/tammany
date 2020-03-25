@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 
+	"cloud.google.com/go/datastore"
 	"github.com/SlothNinja/contest"
 	"github.com/SlothNinja/game"
 	"github.com/SlothNinja/log"
@@ -16,10 +17,10 @@ import (
 )
 
 // Register registers Tammany Hall with the server.
-func Register(t gtype.Type, r *gin.Engine) {
+func (srv server) Register(t gtype.Type, r *gin.Engine, dsClient *datastore.Client) *gin.Engine {
 	gob.Register(new(Game))
 	game.Register(t, newGamer, phaseNames, nil)
-	AddRoutes(t.Prefix(), r)
+	return srv.addRoutes(t.Prefix(), r)
 }
 
 const noPlayerID = game.NoPlayerID

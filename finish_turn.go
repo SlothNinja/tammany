@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func finish(prefix string) gin.HandlerFunc {
+func (srv server) finish(prefix string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		log.Debugf("Entering")
 		defer log.Debugf("Exiting")
@@ -54,7 +54,7 @@ func finish(prefix string) gin.HandlerFunc {
 			g.Status = game.Completed
 			s = s.GetUpdate(c, g.UpdatedAt)
 			ks, es := wrap(s, cs)
-			err = g.saveWith(c, ks, es)
+			err = srv.saveWith(c, g, ks, es)
 			if err != nil {
 				log.Errorf(err.Error())
 				c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
@@ -69,7 +69,7 @@ func finish(prefix string) gin.HandlerFunc {
 		}
 
 		s = s.GetUpdate(c, g.UpdatedAt)
-		err = g.saveWith(c, []*datastore.Key{s.Key}, []interface{}{s})
+		err = srv.saveWith(c, g, []*datastore.Key{s.Key}, []interface{}{s})
 		if err != nil {
 			log.Errorf(err.Error())
 			c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
