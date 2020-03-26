@@ -115,7 +115,7 @@ func (srv server) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
 	)
 
 	// Admin Update
-	admin.POST("/hid",
+	admin.POST("/:hid",
 		srv.fetch,
 		game.SetAdmin(true),
 		srv.update(prefix),
