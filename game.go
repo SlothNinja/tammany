@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 
-	"github.com/SlothNinja/contest"
 	"github.com/SlothNinja/game"
 	"github.com/SlothNinja/log"
 	"github.com/SlothNinja/restful"
@@ -15,11 +14,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Register registers Tammany Hall with the server.
-func (srv server) Register(t gtype.Type, r *gin.Engine) *gin.Engine {
+// Register registers Tammany Hall with the Client.
+func (client Client) Register(t gtype.Type, r *gin.Engine) *gin.Engine {
 	gob.Register(new(Game))
 	game.Register(t, newGamer, phaseNames, nil)
-	return srv.addRoutes(t.Prefix(), r)
+	return client.addRoutes(t.Prefix(), r)
 }
 
 const noPlayerID = game.NoPlayerID
@@ -210,7 +209,7 @@ func (g *Game) actionsPhase() {
 	g.Phase = actions
 }
 
-func (g *Game) startElections(c *gin.Context) contest.Contests {
+func (g *Game) startElections(c *gin.Context) bool {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 

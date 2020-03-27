@@ -10,6 +10,7 @@ import (
 	"github.com/SlothNinja/contest"
 	"github.com/SlothNinja/game"
 	"github.com/SlothNinja/log"
+	"github.com/SlothNinja/rating"
 	"github.com/SlothNinja/user"
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +23,7 @@ func init() {
 type Player struct {
 	*game.Player
 	Log              GameLog
+	Rating           *rating.CurrentRating
 	Chips            Chips
 	PlayedChips      Chips
 	Office           office
@@ -202,8 +204,8 @@ func (g *Game) determinePlacesCommon(c *gin.Context, ps Players) contest.Places 
 			result := &contest.Result{
 				GameID: g.ID(),
 				Type:   g.Type,
-				R:      p2.Rating().R,
-				RD:     p2.Rating().RD,
+				R:      p2.Rating.R,
+				RD:     p2.Rating.RD,
 			}
 			switch c := p1.compare(p2); {
 			case i == j:

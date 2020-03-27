@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"html/template"
 
-	"github.com/SlothNinja/contest"
 	"github.com/SlothNinja/game"
 	"github.com/SlothNinja/log"
 	"github.com/SlothNinja/restful"
@@ -16,7 +15,8 @@ func init() {
 	gob.RegisterName("*game.assignedOfficeEntry", new(assignedOfficeEntry))
 }
 
-func (g *Game) startCityOfficesPhase(c *gin.Context) (cs contest.Contests) {
+// return true if ending game
+func (g *Game) startCityOfficesPhase(c *gin.Context) bool {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
@@ -25,13 +25,15 @@ func (g *Game) startCityOfficesPhase(c *gin.Context) (cs contest.Contests) {
 	}
 	switch {
 	case g.Year() == 16:
-		cs = g.startEndGamePhase(c)
+		return true
+		// cs = g.startEndGamePhase(c)
 	case g.mayor() != nil:
 		g.Phase = assignCityOffices
+		return false
 	default:
 		g.startNextTerm()
+		return false
 	}
-	return
 }
 
 func (g *Game) assignOffice(c *gin.Context) (tmpl string, act game.ActionType, err error) {
