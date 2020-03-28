@@ -10,16 +10,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type server struct {
+type Client struct {
 	*datastore.Client
+	Stats stats.Client
 }
 
-func NewClient(dsClient *datastore.Client) server {
-	return server{Client: dsClient}
+func NewClient(dsClient *datastore.Client) Client {
+	return Client{
+		Client: dsClient,
+		Stats:  stats.NewClient(dsClient),
+	}
 }
 
 // AddRoutes addes routing for game.
-func (srv server) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
+func (client Client) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
 	// Game Group
 	g := engine.Group(prefix + "/game")
 
@@ -27,57 +31,57 @@ func (srv server) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
 	g.GET("/new",
 		user.RequireCurrentUser(),
 		gtype.SetTypes(),
-		srv.newAction(prefix),
+		client.newAction(prefix),
 	)
 
 	// Create
 	g.POST("",
 		user.RequireCurrentUser(),
-		srv.create(prefix),
+		client.create(prefix),
 	)
 
 	// Show
 	g.GET("/show/:hid",
-		srv.fetch,
+		client.fetch,
 		mlog.Get,
 		game.SetAdmin(false),
-		srv.show(prefix),
+		client.show(prefix),
 	)
 
 	// Undo
 	g.POST("/undo/:hid",
-		srv.fetch,
-		srv.undo(prefix),
+		client.fetch,
+		client.undo(prefix),
 	)
 
 	// Finish
 	g.POST("/finish/:hid",
-		srv.fetch,
-		stats.Fetch(user.CurrentFrom),
-		srv.finish(prefix),
+		client.fetch,
+		client.Stats.Fetch(user.CurrentFrom),
+		client.finish(prefix),
 	)
 
 	// Drop
 	g.POST("/drop/:hid",
 		user.RequireCurrentUser(),
-		srv.fetch,
-		srv.drop(prefix),
+		client.fetch,
+		client.drop(prefix),
 	)
 
 	// Accept
 	g.POST("/accept/:hid",
 		user.RequireCurrentUser(),
-		srv.fetch,
-		srv.accept(prefix),
+		client.fetch,
+		client.accept(prefix),
 	)
 
 	// Update
 	g.PUT("/show/:hid",
 		user.RequireCurrentUser(),
-		srv.fetch,
+		client.fetch,
 		game.RequireCurrentPlayerOrAdmin(),
 		game.SetAdmin(false),
-		srv.update(prefix),
+		client.update(prefix),
 	)
 
 	// Games Group
@@ -86,14 +90,14 @@ func (srv server) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
 	// Index
 	gs.GET("/:status",
 		gtype.SetTypes(),
-		srv.index(prefix),
+		client.index(prefix),
 	)
 
 	// JSON Data for Index
 	gs.POST("/:status/json",
 		gtype.SetTypes(),
 		game.GetFiltered(gtype.Tammany),
-		srv.jsonIndexAction(prefix),
+		client.jsonIndexAction(prefix),
 	)
 
 	// Add Message
@@ -108,23 +112,23 @@ func (srv server) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
 
 	// Admin Get
 	admin.GET("/:hid",
-		srv.fetch,
+		client.fetch,
 		mlog.Get,
 		game.SetAdmin(true),
-		srv.show(prefix),
+		client.show(prefix),
 	)
 
 	// Admin Update
 	admin.POST("/:hid",
-		srv.fetch,
+		client.fetch,
 		game.SetAdmin(true),
-		srv.update(prefix),
+		client.update(prefix),
 	)
 
 	admin.PUT("/:hid",
-		srv.fetch,
+		client.fetch,
 		game.SetAdmin(true),
-		srv.update(prefix),
+		client.update(prefix),
 	)
 
 	return engine
