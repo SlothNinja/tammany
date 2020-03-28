@@ -16,10 +16,10 @@ import (
 )
 
 // Register registers Tammany Hall with the server.
-func (srv server) Register(t gtype.Type, r *gin.Engine) *gin.Engine {
+func (client Client) Register(t gtype.Type, r *gin.Engine) *gin.Engine {
 	gob.Register(new(Game))
 	game.Register(t, newGamer, phaseNames, nil)
-	return srv.addRoutes(t.Prefix(), r)
+	return client.addRoutes(t.Prefix(), r)
 }
 
 const noPlayerID = game.NoPlayerID
