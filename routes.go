@@ -13,12 +13,14 @@ import (
 type Client struct {
 	*datastore.Client
 	Stats stats.Client
+	MLog  mlog.Client
 }
 
 func NewClient(dsClient *datastore.Client) Client {
 	return Client{
 		Client: dsClient,
 		Stats:  stats.NewClient(dsClient),
+		MLog:   mlog.NewClient(dsClient),
 	}
 }
 
@@ -43,7 +45,7 @@ func (client Client) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
 	// Show
 	g.GET("/show/:hid",
 		client.fetch,
-		mlog.Get,
+		client.MLog.Get,
 		game.SetAdmin(false),
 		client.show(prefix),
 	)
@@ -103,8 +105,8 @@ func (client Client) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
 	// Add Message
 	gs.PUT("/show/:hid/addmessage",
 		user.RequireCurrentUser(),
-		mlog.Get,
-		mlog.AddMessage(prefix),
+		client.MLog.Get,
+		client.MLog.AddMessage(prefix),
 	)
 
 	// Admin Group
@@ -113,7 +115,7 @@ func (client Client) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
 	// Admin Get
 	admin.GET("/:hid",
 		client.fetch,
-		mlog.Get,
+		client.MLog.Get,
 		game.SetAdmin(true),
 		client.show(prefix),
 	)
