@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"cloud.google.com/go/datastore"
+	"github.com/SlothNinja/contest"
 	"github.com/SlothNinja/game"
 	"github.com/SlothNinja/log"
 	"github.com/SlothNinja/restful"
@@ -12,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (client Client) finish(prefix string) gin.HandlerFunc {
+func (srv server) finish(prefix string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		log.Debugf("Entering")
 		defer log.Debugf("Exiting")
@@ -22,45 +23,38 @@ func (client Client) finish(prefix string) gin.HandlerFunc {
 
 		var (
 			s   *stats.Stats
-			end bool
+			cs  contest.Contests
 			err error
 		)
 
 		switch g.Phase {
 		case actions:
-			s, end, err = g.actionsPhaseFinishTurn(c)
+			s, cs, err = g.actionsPhaseFinishTurn(c)
 		case placeImmigrant:
-			s, end, err = g.placeImmigrantPhaseFinishTurn(c)
+			s, cs, err = g.placeImmigrantPhaseFinishTurn(c)
 		case takeFavorChip:
-			s, end, err = g.takeChipPhaseFinishTurn(c)
+			s, cs, err = g.takeChipPhaseFinishTurn(c)
 		case elections:
-			s, end, err = g.electionPhaseFinishTurn(c)
+			s, cs, err = g.electionPhaseFinishTurn(c)
 		case assignCityOffices:
 			s, err = g.assignOfficesPhaseFinishTurn(c)
 		default:
 			err = sn.NewVError("Improper Phase for finishing turn.")
 		}
+
 		if err != nil {
 			log.Errorf(err.Error())
 			c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
 			return
 		}
 
-		// end then game over
-		if end {
-			err = client.getCurrentRatings(c, g)
-			if err != nil {
-				log.Errorf(err.Error())
-				c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
-				return
-			}
-
-			cs := g.startEndGamePhase(c)
+		// cs != nil then game over
+		if cs != nil {
 			g.Phase = gameOver
 			g.Status = game.Completed
 			s = s.GetUpdate(c, g.UpdatedAt)
 			ks, es := wrap(s, cs)
-			err = client.saveWith(c, g, ks, es)
+			err = srv.saveWith(c, g, ks, es)
 			if err != nil {
 				log.Errorf(err.Error())
 				c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
@@ -75,7 +69,7 @@ func (client Client) finish(prefix string) gin.HandlerFunc {
 		}
 
 		s = s.GetUpdate(c, g.UpdatedAt)
-		err = client.saveWith(c, g, []*datastore.Key{s.Key}, []interface{}{s})
+		err = srv.saveWith(c, g, []*datastore.Key{s.Key}, []interface{}{s})
 		if err != nil {
 			log.Errorf(err.Error())
 			c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
@@ -92,16 +86,6 @@ func (client Client) finish(prefix string) gin.HandlerFunc {
 
 		c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
 	}
-}
-
-func (client Client) getCurrentRatings(c *gin.Context, g *Game) (err error) {
-	for _, p := range g.Players() {
-		p.Rating, err = client.Rating.GetRating(c, g.UserKeyFor(p), g.Type)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (g *Game) validateFinishTurn(c *gin.Context) (s *stats.Stats, err error) {
@@ -132,20 +116,19 @@ func (g *Game) nextPlayer(ps ...game.Playerer) *Player {
 	return nil
 }
 
-func (g *Game) actionsPhaseFinishTurn(c *gin.Context) (*stats.Stats, bool, error) {
+func (g *Game) actionsPhaseFinishTurn(c *gin.Context) (s *stats.Stats, cs contest.Contests, err error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
-	s, err := g.validateActionsPhaseFinishTurn(c)
-	if err != nil {
-		return nil, false, err
+	if s, err = g.validateActionsPhaseFinishTurn(c); err != nil {
+		return
 	}
 
 	cp := g.CurrentPlayer()
 	if g.CanUseOffice(cp) && c.PostForm("action") != "confirm-finish" {
 		g.SubPhase = officeWarning
 		err = g.cache(c)
-		return nil, false, err
+		return
 	}
 
 	restful.AddNoticef(c, "%s finished turn.", g.NameFor(cp))
@@ -158,9 +141,8 @@ func (g *Game) actionsPhaseFinishTurn(c *gin.Context) (*stats.Stats, bool, error
 		switch g.Year() {
 		case 4, 8, 12, 16:
 			// if cs != nil then end game
-			end := g.startElections(c)
-			if end {
-				return s, end, nil
+			if cs = g.startElections(c); cs != nil {
+				return
 			}
 		default:
 			g.setYear(g.Year() + 1)
@@ -171,7 +153,7 @@ func (g *Game) actionsPhaseFinishTurn(c *gin.Context) (*stats.Stats, bool, error
 		g.castleGardenPhase()
 	}
 
-	return s, false, nil
+	return
 }
 
 func (g *Game) validateActionsPhaseFinishTurn(c *gin.Context) (s *stats.Stats, err error) {
@@ -181,34 +163,35 @@ func (g *Game) validateActionsPhaseFinishTurn(c *gin.Context) (s *stats.Stats, e
 	return
 }
 
-func (g *Game) electionPhaseFinishTurn(c *gin.Context) (*stats.Stats, bool, error) {
+func (g *Game) electionPhaseFinishTurn(c *gin.Context) (s *stats.Stats, cs contest.Contests, err error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
-	s, err := g.validateElectionPhaseFinishTurn(c)
-	if err != nil {
-		return nil, false, err
+	if s, err = g.validateElectionPhaseFinishTurn(c); err != nil {
+		return
 	}
 
 	restful.AddNoticef(c, "%s finished turn.", g.NameFor(g.CurrentPlayer()))
 
-	return s, g.continueElections(c), nil
+	cs = g.continueElections(c)
+	return
 }
 
-func (g *Game) continueElections(c *gin.Context) bool {
+func (g *Game) continueElections(c *gin.Context) (cs contest.Contests) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
 	// when true election phase is over
 	if !g.electionsTillUnresolved(c) {
-		return false
+		return
 	}
 
 	g.startAwardChipsPhase(c)
 	g.startScoreVictoryPointsPhase(c)
 	g.newTurnOrder(c)
 
-	return g.startCityOfficesPhase(c)
+	cs = g.startCityOfficesPhase(c)
+	return
 }
 
 func (g *Game) validateElectionPhaseFinishTurn(c *gin.Context) (s *stats.Stats, err error) {
@@ -239,15 +222,15 @@ func (g *Game) electionsTillUnresolved(c *gin.Context) (done bool) {
 	return
 }
 
-func (g *Game) placeImmigrantPhaseFinishTurn(c *gin.Context) (*stats.Stats, bool, error) {
-	s, err := g.validatePlaceImmigrantPhaseFinishTurn(c)
-	if err != nil {
-		return nil, false, err
+func (g *Game) placeImmigrantPhaseFinishTurn(c *gin.Context) (s *stats.Stats, cs contest.Contests, err error) {
+	if s, err = g.validatePlaceImmigrantPhaseFinishTurn(c); err != nil {
+		return
 	}
 
 	g.Phase = elections
 	g.CurrentWard().Resolved = true
-	return s, g.continueElections(c), nil
+	cs = g.continueElections(c)
+	return
 }
 
 func (g *Game) validatePlaceImmigrantPhaseFinishTurn(c *gin.Context) (s *stats.Stats, err error) {
@@ -257,15 +240,13 @@ func (g *Game) validatePlaceImmigrantPhaseFinishTurn(c *gin.Context) (s *stats.S
 	return
 }
 
-func (g *Game) takeChipPhaseFinishTurn(c *gin.Context) (*stats.Stats, bool, error) {
-	s, err := g.validateTakeChipPhaseFinishTurn(c)
-	if err != nil {
-		return nil, false, err
+func (g *Game) takeChipPhaseFinishTurn(c *gin.Context) (s *stats.Stats, cs contest.Contests, err error) {
+	if s, err = g.validateTakeChipPhaseFinishTurn(c); err == nil {
+		g.Phase = elections
+		g.CurrentWard().Resolved = true
+		cs = g.continueElections(c)
 	}
-
-	g.Phase = elections
-	g.CurrentWard().Resolved = true
-	return s, g.continueElections(c), nil
+	return
 }
 
 func (g *Game) validateTakeChipPhaseFinishTurn(c *gin.Context) (s *stats.Stats, err error) {
