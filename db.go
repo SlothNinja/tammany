@@ -31,18 +31,19 @@ func newKey(c *gin.Context, id int64) *datastore.Key {
 	return datastore.IDKey("Game", id, pk(c))
 }
 
-func (g *Game) init(c *gin.Context) (err error) {
-	if err = g.Header.AfterLoad(g); err != nil {
-		return
+func (client Client) init(c *gin.Context, g *Game) error {
+	err := client.Game.AfterLoad(c, g.Header)
+	if err != nil {
+		return err
 	}
 
 	for _, player := range g.Players() {
 		player.init(g)
 	}
 
-	return
+	return nil
 }
 
-func (g *Game) afterCache(c *gin.Context) error {
-	return g.init(c)
+func (client Client) afterCache(c *gin.Context, g *Game) error {
+	return client.init(c, g)
 }

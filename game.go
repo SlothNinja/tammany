@@ -210,7 +210,7 @@ func (g *Game) actionsPhase() {
 	g.Phase = actions
 }
 
-func (g *Game) startElections(c *gin.Context) contest.Contests {
+func (client Client) startElections(c *gin.Context, g *Game) (contest.Contests, error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
@@ -224,7 +224,7 @@ func (g *Game) startElections(c *gin.Context) contest.Contests {
 		w.Resolved = false
 	}
 
-	return g.continueElections(c)
+	return client.continueElections(c, g)
 }
 
 func (g *Game) inActionPhase() bool {

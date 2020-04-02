@@ -165,7 +165,7 @@ func (p *Player) NotEqual(op *Player) bool {
 	return !p.Equal(op)
 }
 
-func (g *Game) determine2PPlaces(c *gin.Context) contest.Places {
+func (client Client) determine2PPlaces(c *gin.Context, g *Game) (contest.Places, error) {
 	// sort players by score
 	players := g.Players()
 	sort.Sort(ByAll{players})
@@ -182,28 +182,32 @@ func (g *Game) determine2PPlaces(c *gin.Context) contest.Places {
 		}
 	}
 	sort.Sort(Reverse{ByAll{ps}})
-	return g.determinePlacesCommon(c, ps)
+	return client.determinePlacesCommon(c, g)
 }
 
-func (g *Game) determinePlaces(c *gin.Context) contest.Places {
+func (client Client) determinePlaces(c *gin.Context, g *Game) (contest.Places, error) {
 	// sort players by score
 	players := g.Players()
 	sort.Sort(Reverse{ByAll{players}})
 	g.setPlayers(players)
-	return g.determinePlacesCommon(c, g.Players())
+	return client.determinePlacesCommon(c, g)
 }
 
-func (g *Game) determinePlacesCommon(c *gin.Context, ps Players) contest.Places {
+func (client Client) determinePlacesCommon(c *gin.Context, g *Game) (contest.Places, error) {
 	places := make(contest.Places, 0)
-	for i, p1 := range ps {
+	for i, p1 := range g.Players() {
 		rmap := make(contest.ResultsMap, 0)
 		results := make(contest.Results, 0)
-		for j, p2 := range ps {
+		for j, p2 := range g.Players() {
+			r, err := client.Rating.For(c, p2.User(), g.Type)
+			if err != nil {
+				return nil, err
+			}
 			result := &contest.Result{
 				GameID: g.ID(),
 				Type:   g.Type,
-				R:      p2.Rating().R,
-				RD:     p2.Rating().RD,
+				R:      r.R,
+				RD:     r.RD,
 			}
 			switch c := p1.compare(p2); {
 			case i == j:
@@ -220,7 +224,7 @@ func (g *Game) determinePlacesCommon(c *gin.Context, ps Players) contest.Places 
 		rmap[p1.User().Key] = results
 		places = append(places, rmap)
 	}
-	return places
+	return places, nil
 }
 
 //func (this *Game) determinePlaces() []Players {

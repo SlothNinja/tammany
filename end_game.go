@@ -19,14 +19,17 @@ func init() {
 	gob.RegisterName("*game.announceTHWinnersEntry", new(announceTHWinnersEntry))
 }
 
-func (g *Game) startEndGamePhase(c *gin.Context) contest.Contests {
+func (client Client) startEndGamePhase(c *gin.Context, g *Game) (contest.Contests, error) {
 	g.Phase = endGameScoring
 	g.awardFavorChipPoints()
 	g.awardSlanderChipPoints()
 
-	places := g.determinePlaces(c)
+	places, err := client.determinePlaces(c, g)
+	if err != nil {
+		return nil, err
+	}
 	g.setWinners(places[0])
-	return contest.GenContests(c, places)
+	return contest.GenContests(c, places), nil
 }
 
 func toIDS(places []Players) [][]int64 {

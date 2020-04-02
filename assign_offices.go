@@ -16,7 +16,7 @@ func init() {
 	gob.RegisterName("*game.assignedOfficeEntry", new(assignedOfficeEntry))
 }
 
-func (g *Game) startCityOfficesPhase(c *gin.Context) (cs contest.Contests) {
+func (client Client) startCityOfficesPhase(c *gin.Context, g *Game) (contest.Contests, error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
@@ -25,13 +25,14 @@ func (g *Game) startCityOfficesPhase(c *gin.Context) (cs contest.Contests) {
 	}
 	switch {
 	case g.Year() == 16:
-		cs = g.startEndGamePhase(c)
+		return client.startEndGamePhase(c, g)
 	case g.mayor() != nil:
 		g.Phase = assignCityOffices
+		return nil, nil
 	default:
 		g.startNextTerm()
+		return nil, nil
 	}
-	return
 }
 
 func (g *Game) assignOffice(c *gin.Context) (tmpl string, act game.ActionType, err error) {
