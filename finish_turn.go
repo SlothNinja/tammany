@@ -128,7 +128,8 @@ func (client Client) actionsPhaseFinishTurn(c *gin.Context, g *Game) (*stats.Sta
 	cp := g.CurrentPlayer()
 	if g.CanUseOffice(cp) && c.PostForm("action") != "confirm-finish" {
 		g.SubPhase = officeWarning
-		return s, nil, g.cache(c)
+		client.Cache.SetDefault(g.UndoKey(c), g)
+		return s, nil, nil
 	}
 
 	restful.AddNoticef(c, "%s finished turn.", g.NameFor(cp))
