@@ -94,6 +94,13 @@ func (client Client) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
 		client.update(prefix),
 	)
 
+	// Add Message
+	g.PUT("/show/:hid/addmessage",
+		user.RequireCurrentUser(),
+		client.MLog.Get,
+		client.MLog.AddMessage(prefix),
+	)
+
 	// Games Group
 	gs := engine.Group(prefix + "/games")
 
@@ -108,13 +115,6 @@ func (client Client) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
 		gtype.SetTypes(),
 		client.Game.GetFiltered(gtype.Tammany),
 		client.jsonIndexAction(prefix),
-	)
-
-	// Add Message
-	gs.PUT("/show/:hid/addmessage",
-		user.RequireCurrentUser(),
-		client.MLog.Get,
-		client.MLog.AddMessage(prefix),
 	)
 
 	// Admin Group
