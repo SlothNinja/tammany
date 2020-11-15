@@ -21,13 +21,13 @@ type Client struct {
 	Cache  *cache.Cache
 }
 
-func NewClient(dsClient *datastore.Client, mcache *cache.Cache) Client {
+func NewClient(dsClient *datastore.Client, userClient *datastore.Client, mcache *cache.Cache) Client {
 	return Client{
 		Client: dsClient,
 		Stats:  stats.NewClient(dsClient),
 		MLog:   mlog.NewClient(dsClient),
 		Game:   game.NewClient(dsClient),
-		Rating: rating.NewClient(dsClient),
+		Rating: rating.NewClient(dsClient, userClient),
 		Cache:  mcache,
 	}
 }
@@ -40,7 +40,6 @@ func (client Client) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
 	// New
 	g.GET("/new",
 		user.RequireCurrentUser(),
-		gtype.SetTypes(),
 		client.newAction(prefix),
 	)
 
@@ -106,13 +105,11 @@ func (client Client) addRoutes(prefix string, engine *gin.Engine) *gin.Engine {
 
 	// Index
 	gs.GET("/:status",
-		gtype.SetTypes(),
 		client.index(prefix),
 	)
 
 	// JSON Data for Index
 	gs.POST("/:status/json",
-		gtype.SetTypes(),
 		client.Game.GetFiltered(gtype.Tammany),
 		client.jsonIndexAction(prefix),
 	)
