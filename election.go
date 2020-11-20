@@ -25,7 +25,10 @@ func (g *Game) resolve(c *gin.Context, w *Ward) (resolved bool) {
 		winner *Player
 	)
 
-	cu := user.CurrentFrom(c)
+	cu, err := user.CurrentFrom(c)
+	if err != nil {
+		log.Debugf(err.Error())
+	}
 	cp := g.CurrentPlayerFor(cu)
 	g.RemoveCurrentPlayers(cp)
 

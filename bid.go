@@ -12,16 +12,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (g *Game) bid(c *gin.Context) (tmpl string, act game.ActionType, err error) {
+func (g *Game) bid(c *gin.Context) (string, game.ActionType, error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
-	if err = g.validateBid(c); err != nil {
-		tmpl, act = "tammany/flash_notice", game.None
-		return
+	err := g.validateBid(c)
+	if err != nil {
+		return "tammany/flash_notice", game.None, err
 	}
 
-	cu := user.CurrentFrom(c)
+	cu, err := user.CurrentFrom(c)
+	if err != nil {
+		return "", game.None, err
+	}
+
 	cp := g.CurrentPlayerFor(cu)
 	cp.PerformedAction = true
 	cp.HasBid = true
@@ -38,50 +42,43 @@ func (g *Game) bid(c *gin.Context) (tmpl string, act game.ActionType, err error)
 		}
 		restful.AddNoticef(c, "You played %s for the election in ward %d.", restful.ToSentence(strings), g.CurrentWardID)
 	}
-	tmpl, act = "tammany/bid_update", game.Cache
-	return
+	return "tammany/bid_update", game.Cache, nil
 }
 
-func (g *Game) validateBid(c *gin.Context) (err error) {
+func (g *Game) validateBid(c *gin.Context) error {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
-	var (
-		count int
-		v     string
-	)
-
 	if !g.CUserIsCPlayerOrAdmin(c) {
-		err = sn.NewVError("Only the current player can place a bid.")
-		return
+		return sn.NewVError("Only the current player can place a bid.")
 	}
 
-	cu := user.CurrentFrom(c)
+	cu, err := user.CurrentFrom(c)
+	if err != nil {
+		return err
+	}
 	cp := g.CurrentPlayerFor(cu)
 	if cp.PerformedAction {
-		err = sn.NewVError("You have already performed an action.")
-		return
+		return sn.NewVError("You have already performed an action.")
 	}
 
 	for _, n := range g.Nationalities() {
-		v = c.PostForm(fmt.Sprintf("%s-0", n.LString()))
-		if count, err = strconv.Atoi(v); err != nil {
-			return
+		v := c.PostForm(fmt.Sprintf("%s-0", n.LString()))
+		count, err := strconv.Atoi(v)
+		if err != nil {
+			return err
 		}
 		cp.PlayedChips[n] = count
 
 		switch {
 		case cp.PlayedChips[n] > 0 && g.CurrentWard().Immigrants[n] <= 0:
-			err = sn.NewVError("You played %s favour chips, but there are no %s immigrants in ward %d",
+			return sn.NewVError("You played %s favour chips, but there are no %s immigrants in ward %d",
 				n, n, g.CurrentWardID)
-			return
 		case cp.PlayedChips[n] < 0:
-			err = sn.NewVError("Invalid value received for played %s chips.", n)
-			return
+			return sn.NewVError("Invalid value received for played %s chips.", n)
 		case cp.PlayedChips[n] > cp.Chips[n]:
-			err = sn.NewVError("You played more %s chips, than you have.", n)
-			return
+			return sn.NewVError("You played more %s chips, than you have.", n)
 		}
 	}
-	return
+	return nil
 }
