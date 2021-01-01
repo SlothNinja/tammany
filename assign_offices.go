@@ -9,6 +9,7 @@ import (
 	"github.com/SlothNinja/log"
 	"github.com/SlothNinja/restful"
 	"github.com/SlothNinja/sn"
+	"github.com/SlothNinja/user"
 	"github.com/gin-gonic/gin"
 )
 
@@ -35,7 +36,7 @@ func (client Client) startCityOfficesPhase(c *gin.Context, g *Game) (contest.Con
 	}
 }
 
-func (g *Game) assignOffice(c *gin.Context) (tmpl string, act game.ActionType, err error) {
+func (g *Game) assignOffice(c *gin.Context, cu *user.User) (tmpl string, act game.ActionType, err error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
@@ -44,7 +45,7 @@ func (g *Game) assignOffice(c *gin.Context) (tmpl string, act game.ActionType, e
 		o office
 	)
 
-	if p, o, err = g.validateAssignOffice(c); err != nil {
+	if p, o, err = g.validateAssignOffice(c, cu); err != nil {
 		tmpl, act = "tammany/flash_notice", game.None
 		return
 	}
@@ -96,50 +97,43 @@ func (p *Player) hasAnOffice() bool {
 	return p.Office != noOffice
 }
 
-func (g *Game) validateAssignOffice(c *gin.Context) (p *Player, o office, err error) {
+func (g *Game) validateAssignOffice(c *gin.Context, cu *user.User) (*Player, office, error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
 	cp := g.CurrentPlayer()
 
-	switch o, p = g.getOffice(c), g.playerBySID(c.PostForm("pid")); {
-	case !g.CUserIsCPlayerOrAdmin(c):
-		err = sn.NewVError("Only the current player can select an office.")
+	o, p := g.getOffice(c), g.playerBySID(c.PostForm("pid"))
+	switch {
+	case !g.IsCurrentPlayer(cu):
+		return nil, noOffice, sn.NewVError("Only the current player can select an office.")
 	case o == noOffice:
-		err = sn.NewVError("Invalid office assigned.")
+		return nil, noOffice, sn.NewVError("Invalid office assigned.")
 	case g.CurrentPlayer().PerformedAction:
-		err = sn.NewVError("You have already performed an action.")
+		return nil, noOffice, sn.NewVError("You have already performed an action.")
 	case g.officeAssigned(o):
-		err = sn.NewVError("%s office has already been assigned.", o)
+		return nil, noOffice, sn.NewVError("%s office has already been assigned.", o)
 	case !officeValues.include(o):
-		err = sn.NewVError("Invalid value received for office.", o)
+		return nil, noOffice, sn.NewVError("Invalid value received for office.", o)
 	case p == nil:
-		err = sn.NewVError("Invalid value received for player.")
+		return nil, noOffice, sn.NewVError("Invalid value received for player.")
 	case p.Office != noOffice:
-		err = sn.NewVError("%s has already been assigned the office of %s", g.NameFor(p), p.Office)
-	case g.Phase == assignDeputyMayor:
-		switch {
-		case g.mayor() == nil:
-			err = sn.NewVError("There is no Mayor to appoint a Deputy Mayor.")
-		case !cp.isMayor() && !g.IsAdmin():
-			err = sn.NewVError("You are not the Mayor and therefore can't assign offices.")
-		case o != deputyMayor:
-			err = sn.NewVError("The mayor must first appoint a Deputy Mayor.")
-		}
-	case g.Phase == deputyMayorAssignOffice:
-		switch {
-		case g.deputyMayor() == nil:
-			err = sn.NewVError("There is no Deputy Mayor to assign offices.")
-		case !cp.isDeputyMayor() && !g.IsAdmin():
-			err = sn.NewVError("You are not the Deputy Mayor and therefore can't assign offices.")
-		}
-	case g.Phase == assignCityOffices:
-		switch {
-		case g.mayor() == nil:
-			err = sn.NewVError("There is no Mayor to assign offices.")
-		case !cp.isMayor() && !g.IsAdmin():
-			err = sn.NewVError("You are not the Mayor and therefore can't assign offices.")
-		}
+		return nil, noOffice, sn.NewVError("%s has already been assigned the office of %s", g.NameFor(p), p.Office)
+	case g.Phase == assignDeputyMayor && g.mayor() == nil:
+		return nil, noOffice, sn.NewVError("There is no Mayor to appoint a Deputy Mayor.")
+	case g.Phase == assignDeputyMayor && !cp.isMayor() && !isAdmin(cu):
+		return nil, noOffice, sn.NewVError("You are not the Mayor and therefore can't assign offices.")
+	case g.Phase == assignDeputyMayor && o != deputyMayor:
+		return nil, noOffice, sn.NewVError("The mayor must first appoint a Deputy Mayor.")
+	case g.Phase == deputyMayorAssignOffice && g.deputyMayor() == nil:
+		return nil, noOffice, sn.NewVError("There is no Deputy Mayor to assign offices.")
+	case g.Phase == deputyMayorAssignOffice && !cp.isDeputyMayor() && !isAdmin(cu):
+		return nil, noOffice, sn.NewVError("You are not the Deputy Mayor and therefore can't assign offices.")
+	case g.Phase == assignCityOffices && g.mayor() == nil:
+		return nil, noOffice, sn.NewVError("There is no Mayor to assign offices.")
+	case g.Phase == assignCityOffices && !cp.isMayor() && !isAdmin(cu):
+		return nil, noOffice, sn.NewVError("You are not the Mayor and therefore can't assign offices.")
+	default:
+		return p, o, nil
 	}
-	return
 }

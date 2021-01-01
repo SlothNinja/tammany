@@ -12,18 +12,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (g *Game) bid(c *gin.Context) (string, game.ActionType, error) {
+func (g *Game) bid(c *gin.Context, cu *user.User) (string, game.ActionType, error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
-	err := g.validateBid(c)
+	err := g.validateBid(c, cu)
 	if err != nil {
 		return "tammany/flash_notice", game.None, err
-	}
-
-	cu, err := user.CurrentFrom(c)
-	if err != nil {
-		return "", game.None, err
 	}
 
 	cp := g.CurrentPlayerFor(cu)
@@ -45,18 +40,14 @@ func (g *Game) bid(c *gin.Context) (string, game.ActionType, error) {
 	return "tammany/bid_update", game.Cache, nil
 }
 
-func (g *Game) validateBid(c *gin.Context) error {
+func (g *Game) validateBid(c *gin.Context, cu *user.User) error {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
-	if !g.CUserIsCPlayerOrAdmin(c) {
+	if !g.IsCurrentPlayer(cu) {
 		return sn.NewVError("Only the current player can place a bid.")
 	}
 
-	cu, err := user.CurrentFrom(c)
-	if err != nil {
-		return err
-	}
 	cp := g.CurrentPlayerFor(cu)
 	if cp.PerformedAction {
 		return sn.NewVError("You have already performed an action.")

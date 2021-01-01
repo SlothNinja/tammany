@@ -9,6 +9,7 @@ import (
 	"github.com/SlothNinja/game"
 	"github.com/SlothNinja/restful"
 	"github.com/SlothNinja/sn"
+	"github.com/SlothNinja/user"
 	"github.com/gin-gonic/gin"
 )
 
@@ -208,9 +209,9 @@ func (g *Game) nationalityTieBreaker(n nationality, players Players) Players {
 	return ps
 }
 
-func (g *Game) placeLockupMarker(c *gin.Context) (tmpl string, act game.ActionType, err error) {
+func (g *Game) placeLockupMarker(c *gin.Context, cu *user.User) (tmpl string, act game.ActionType, err error) {
 	var w *Ward
-	if w, err = g.validatePlaceLockupMarker(c); err != nil {
+	if w, err = g.validatePlaceLockupMarker(c, cu); err != nil {
 		tmpl, act = "tammany/flash_notice", game.None
 		return
 	}
@@ -247,13 +248,13 @@ func (e *placedLockUpMarkerEntry) HTML(c *gin.Context) template.HTML {
 	return restful.HTML("%s locked-up ward %d.", g.NameByPID(e.PlayerID), e.WardID)
 }
 
-func (g *Game) validatePlaceLockupMarker(c *gin.Context) (w *Ward, err error) {
+func (g *Game) validatePlaceLockupMarker(c *gin.Context, cu *user.User) (w *Ward, err error) {
 	var (
 		cp, prez *Player
 	)
 
 	switch w, cp, prez = g.getWard(c), g.CurrentPlayer(), g.councilPresident(); {
-	case !g.CUserIsCPlayerOrAdmin(c):
+	case !g.IsCurrentPlayer(cu):
 		err = sn.NewVError("Only the current player can lockup a ward.")
 	case w == nil:
 		err = sn.NewVError("You must first select a ward.")
@@ -273,19 +274,19 @@ func (g *Game) validatePlaceLockupMarker(c *gin.Context) (w *Ward, err error) {
 	return
 }
 
-func (g *Game) moveFrom(c *gin.Context) (tmpl string, act game.ActionType, err error) {
+func (g *Game) moveFrom(c *gin.Context, cu *user.User) (tmpl string, act game.ActionType, err error) {
 	var (
 		w *Ward
 		n nationality
 	)
 
-	if w, n, err = g.validateMoveFrom(c); err != nil {
+	if w, n, err = g.validateMoveFrom(c, cu); err != nil {
 		tmpl, act = "tammany/flash_notice", game.None
 		return
 	}
 
 	// Move Immigrant From Ward
-	g.endSlander()
+	g.endSlander(cu)
 	w.Immigrants[n]--
 	g.Bag[n]++
 	g.setMoveFromWard(w)
@@ -295,11 +296,11 @@ func (g *Game) moveFrom(c *gin.Context) (tmpl string, act game.ActionType, err e
 	return
 }
 
-func (g *Game) validateMoveFrom(c *gin.Context) (w *Ward, n nationality, err error) {
+func (g *Game) validateMoveFrom(c *gin.Context, cu *user.User) (w *Ward, n nationality, err error) {
 	var cp, chairman *Player
 
 	switch n, w, cp, chairman = getNationality(c), g.getWard(c), g.CurrentPlayer(), g.precinctChairman(); {
-	case !g.CUserIsCPlayerOrAdmin(c):
+	case !g.IsCurrentPlayer(cu):
 		err = sn.NewVError("Only the current player can move an immigrant between wards.")
 	case w == nil:
 		err = sn.NewVError("You must first select a ward.")
@@ -321,13 +322,13 @@ func (w *Ward) hasOneImmigrant() bool {
 	return w.Immigrants.count() == 1
 }
 
-func (g *Game) moveTo(c *gin.Context) (tmpl string, act game.ActionType, err error) {
+func (g *Game) moveTo(c *gin.Context, cu *user.User) (tmpl string, act game.ActionType, err error) {
 	var (
 		w *Ward
 		n nationality
 	)
 
-	if w, n, err = g.validateMoveTo(c); err != nil {
+	if w, n, err = g.validateMoveTo(c, cu); err != nil {
 		tmpl, act = "tammany/flash_notice", game.None
 		return
 	}
@@ -338,7 +339,7 @@ func (g *Game) moveTo(c *gin.Context) (tmpl string, act game.ActionType, err err
 	restful.AddNoticef(c, string(e.HTML(c)))
 
 	// Move Immigrant To Ward
-	g.endSlander()
+	g.endSlander(cu)
 	w.Immigrants[n]++
 	g.Bag[n]--
 	cp.UsedOffice = true
@@ -372,11 +373,11 @@ func (e *movedImmigrantEntry) HTML(c *gin.Context) template.HTML {
 	return restful.HTML("%s moved a %s immigrant from ward %d to ward %d.", g.NameFor(p), e.Immigrant, e.FromWardID, e.ToWardID)
 }
 
-func (g *Game) validateMoveTo(c *gin.Context) (w *Ward, n nationality, err error) {
+func (g *Game) validateMoveTo(c *gin.Context, cu *user.User) (w *Ward, n nationality, err error) {
 	var cp, chairman *Player
 
 	switch n, w, cp, chairman = getNationality(c), g.getWard(c), g.CurrentPlayer(), g.precinctChairman(); {
-	case !g.CUserIsCPlayerOrAdmin(c):
+	case !g.IsCurrentPlayer(cu):
 		err = sn.NewVError("Only the current player can place a boss.")
 	case w == nil:
 		err = sn.NewVError("You must first select a ward.")

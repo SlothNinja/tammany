@@ -10,6 +10,7 @@ import (
 	"github.com/SlothNinja/log"
 	"github.com/SlothNinja/restful"
 	"github.com/SlothNinja/sn"
+	"github.com/SlothNinja/user"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,7 +24,7 @@ func init() {
 	gob.RegisterName("*game.takeChipEntry", new(takeChipEntry))
 }
 
-func (g *Game) placePieces(c *gin.Context) (tmpl string, act game.ActionType, err error) {
+func (g *Game) placePieces(c *gin.Context, cu *user.User) (tmpl string, act game.ActionType, err error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
@@ -33,7 +34,7 @@ func (g *Game) placePieces(c *gin.Context) (tmpl string, act game.ActionType, er
 		w      *Ward
 	)
 
-	if b, n, cnt, w, err = g.validatePlacePieces(c); err != nil {
+	if b, n, cnt, w, err = g.validatePlacePieces(c, cu); err != nil {
 		log.Errorf(err.Error())
 		tmpl, act = "tammany/flash_notice", game.None
 		return
@@ -44,7 +45,7 @@ func (g *Game) placePieces(c *gin.Context) (tmpl string, act game.ActionType, er
 	e := g.newPlacedPiecesEntryFor(cp, b, n, cnt, w)
 	restful.AddNoticef(c, string(e.HTML(c)))
 
-	g.endSlander()
+	g.endSlander(cu)
 
 	// Place Bosses
 	w.Bosses[cp.ID()] += b
@@ -73,7 +74,7 @@ func (g *Game) placePieces(c *gin.Context) (tmpl string, act game.ActionType, er
 	return
 }
 
-func (g *Game) validatePlacePieces(c *gin.Context) (b int, n nationality, cb nationality, w *Ward, err error) {
+func (g *Game) validatePlacePieces(c *gin.Context, cu *user.User) (b int, n nationality, cb nationality, w *Ward, err error) {
 	if b, err = getBosses(c); err != nil {
 		log.Errorf(err.Error())
 		return
@@ -220,13 +221,13 @@ func (e *placedBossEntry) HTML(c *gin.Context) template.HTML {
 	return restful.HTML("%s placed a boss in ward %d.", g.NameByPID(e.PlayerID), e.WardID)
 }
 
-func (g *Game) removeImmigrant(c *gin.Context) (tmpl string, act game.ActionType, err error) {
+func (g *Game) removeImmigrant(c *gin.Context, cu *user.User) (tmpl string, act game.ActionType, err error) {
 	var (
 		w *Ward
 		n nationality
 	)
 
-	if w, n, err = g.validateRemoveImmigrant(c); err != nil {
+	if w, n, err = g.validateRemoveImmigrant(c, cu); err != nil {
 		log.Errorf(err.Error())
 		tmpl, act = "tammany/flash_notice", game.None
 		return
@@ -238,7 +239,7 @@ func (g *Game) removeImmigrant(c *gin.Context) (tmpl string, act game.ActionType
 	restful.AddNoticef(c, string(e.HTML(c)))
 
 	// Remove Immigrant
-	g.endSlander()
+	g.endSlander(cu)
 	w.Immigrants[n]--
 	g.Bag[n]++
 	cp.UsedOffice = true
@@ -269,14 +270,14 @@ func (e *removedImmigrantEntry) HTML(c *gin.Context) template.HTML {
 	return restful.HTML("%s removed a %s immigrant from ward %d.", g.NameByPID(e.PlayerID), e.Immigrant, e.WardID)
 }
 
-func (g *Game) validateRemoveImmigrant(c *gin.Context) (*Ward, nationality, error) {
+func (g *Game) validateRemoveImmigrant(c *gin.Context, cu *user.User) (*Ward, nationality, error) {
 	n := getNationality(c)
 	w := g.getWard(c)
 	cp := g.CurrentPlayer()
 	chief := g.chiefOfPolice()
 
 	switch {
-	case !g.CUserIsCPlayerOrAdmin(c):
+	case !g.IsCurrentPlayer(cu):
 		return nil, noNationality, sn.NewVError("Only the current player can remove an immigrant from a ward.")
 	case w == nil:
 		return nil, noNationality, sn.NewVError("You must first select a ward.")
@@ -344,9 +345,9 @@ func (e *placedBossAndImmigrantEntry) HTML(c *gin.Context) template.HTML {
 	return restful.HTML("%s placed a boss and a %s immigrant in ward %d.", g.NameByPID(e.PlayerID), e.Immigrant, e.WardID)
 }
 
-func (g *Game) deputyTakeChip(c *gin.Context) (tmpl string, act game.ActionType, err error) {
+func (g *Game) deputyTakeChip(c *gin.Context, cu *user.User) (tmpl string, act game.ActionType, err error) {
 	var n nationality
-	if n, err = g.validateDeputyTakeChip(c); err != nil {
+	if n, err = g.validateDeputyTakeChip(c, cu); err != nil {
 		tmpl, act = "tammany/flash_notice", game.None
 		return
 	}
@@ -354,7 +355,7 @@ func (g *Game) deputyTakeChip(c *gin.Context) (tmpl string, act game.ActionType,
 	cp := g.CurrentPlayer()
 
 	// Take Favor Chip
-	g.endSlander()
+	g.endSlander(cu)
 	cp.Chips[n]++
 	cp.UsedOffice = true
 
@@ -366,7 +367,7 @@ func (g *Game) deputyTakeChip(c *gin.Context) (tmpl string, act game.ActionType,
 	return
 }
 
-func (g *Game) validateDeputyTakeChip(c *gin.Context) (n nationality, err error) {
+func (g *Game) validateDeputyTakeChip(c *gin.Context, cu *user.User) (n nationality, err error) {
 	var ok bool
 	if n, ok = toNationality[c.PostForm("chip")]; !ok {
 		err = sn.NewVError("Invalid value received for chip nationatlity.")
@@ -377,7 +378,7 @@ func (g *Game) validateDeputyTakeChip(c *gin.Context) (n nationality, err error)
 	deputy := g.deputyMayor()
 
 	switch {
-	case !g.CUserIsCPlayerOrAdmin(c):
+	case !g.IsCurrentPlayer(cu):
 		err = sn.NewVError("Only the current player can take a chip.")
 	case cp.UsedOffice:
 		err = sn.NewVError("You have already taken a favor chip.")
@@ -389,9 +390,9 @@ func (g *Game) validateDeputyTakeChip(c *gin.Context) (n nationality, err error)
 	return
 }
 
-func (g *Game) takeChip(c *gin.Context) (tmpl string, act game.ActionType, err error) {
+func (g *Game) takeChip(c *gin.Context, cu *user.User) (tmpl string, act game.ActionType, err error) {
 	var n nationality
-	if n, err = g.validateTakeChip(c); err != nil {
+	if n, err = g.validateTakeChip(c, cu); err != nil {
 		tmpl, act = "tammany/flash_notice", game.None
 		return
 	}
@@ -399,7 +400,7 @@ func (g *Game) takeChip(c *gin.Context) (tmpl string, act game.ActionType, err e
 	cp := g.CurrentPlayer()
 
 	// Take Favor Chip
-	g.endSlander()
+	g.endSlander(cu)
 	cp.Chips[n]++
 	cp.PerformedAction = true
 
@@ -429,7 +430,7 @@ func (e *takeChipEntry) HTML(c *gin.Context) template.HTML {
 	return restful.HTML("%s took a %s favor chip.", g.NameByPID(e.PlayerID), e.Chip)
 }
 
-func (g *Game) validateTakeChip(c *gin.Context) (n nationality, err error) {
+func (g *Game) validateTakeChip(c *gin.Context, cu *user.User) (n nationality, err error) {
 	var ok bool
 	if n, ok = toNationality[c.PostForm("chip")]; !ok {
 		err = sn.NewVError("Invalid value received for chip nationatlity.")
@@ -439,7 +440,7 @@ func (g *Game) validateTakeChip(c *gin.Context) (n nationality, err error) {
 	cp := g.CurrentPlayer()
 
 	switch {
-	case !g.CUserIsCPlayerOrAdmin(c):
+	case !g.IsCurrentPlayer(cu):
 		err = sn.NewVError("Only the current player can take a chip.")
 	case cp.PerformedAction:
 		err = sn.NewVError("You have already performed an action.")

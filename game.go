@@ -70,7 +70,7 @@ func (g *Game) Players() (players Players) {
 }
 
 // CurrentPlayerLinks provides url links to the current players.
-func (g *Game) CurrentPlayerLinks(c *gin.Context) template.HTML {
+func (g *Game) CurrentPlayerLinks(cu *user.User) template.HTML {
 	cps := g.CurrentPlayers()
 	if len(cps) == 0 || g.Status != game.Running {
 		return "None"
@@ -79,7 +79,7 @@ func (g *Game) CurrentPlayerLinks(c *gin.Context) template.HTML {
 	var links string
 	for _, cp := range cps {
 		links += fmt.Sprintf("<div style='margin:3px'><img src=%q height='28px' style='vertical-align:middle' /> <span style='vertical-align:middle'>%s</span></div>", cp.bossImagePath(),
-			g.PlayerLinkByID(c, cp.ID()%len(g.Users)))
+			g.PlayerLinkByID(cu, cp.ID()%len(g.Users)))
 	}
 	return template.HTML(links)
 }
@@ -210,7 +210,7 @@ func (g *Game) actionsPhase() {
 	g.Phase = actions
 }
 
-func (client Client) startElections(c *gin.Context, g *Game) (contest.Contests, error) {
+func (client Client) startElections(c *gin.Context, g *Game, cu *user.User) (contest.Contests, error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
@@ -224,7 +224,7 @@ func (client Client) startElections(c *gin.Context, g *Game) (contest.Contests, 
 		w.Resolved = false
 	}
 
-	return client.continueElections(c, g)
+	return client.continueElections(c, g, cu)
 }
 
 func (g *Game) inActionPhase() bool {
@@ -292,9 +292,9 @@ func (g *Game) playerByIndex(i int) (p *Player) {
 	return
 }
 
-func (g *Game) undoAction(c *gin.Context) (string, game.ActionType, error) {
+func (g *Game) undoAction(c *gin.Context, cu *user.User) (string, game.ActionType, error) {
 	cp := g.CurrentPlayer()
-	if !g.CUserIsCPlayerOrAdmin(c) {
+	if !g.IsCurrentPlayer(cu) {
 		return "", game.None, sn.NewVError("Only the current player may perform this action.")
 	}
 
@@ -302,9 +302,9 @@ func (g *Game) undoAction(c *gin.Context) (string, game.ActionType, error) {
 	return "", game.Undo, nil
 }
 
-func (g *Game) resetTurn(c *gin.Context) (string, game.ActionType, error) {
+func (g *Game) resetTurn(c *gin.Context, cu *user.User) (string, game.ActionType, error) {
 	cp := g.CurrentPlayer()
-	if !g.CUserIsCPlayerOrAdmin(c) {
+	if !g.IsCurrentPlayer(cu) {
 		return "", game.None, sn.NewVError("Only the current player may perform this action.")
 	}
 
@@ -312,9 +312,9 @@ func (g *Game) resetTurn(c *gin.Context) (string, game.ActionType, error) {
 	return "", game.Reset, nil
 }
 
-func (g *Game) redoAction(c *gin.Context) (string, game.ActionType, error) {
+func (g *Game) redoAction(c *gin.Context, cu *user.User) (string, game.ActionType, error) {
 	cp := g.CurrentPlayer()
-	if !g.CUserIsCPlayerOrAdmin(c) {
+	if !g.IsCurrentPlayer(cu) {
 		return "", game.None, sn.NewVError("Only the current player may perform this action.")
 	}
 
@@ -323,11 +323,12 @@ func (g *Game) redoAction(c *gin.Context) (string, game.ActionType, error) {
 }
 
 // CurrentPlayer returns the current player.
-func (g *Game) CurrentPlayer() (p *Player) {
-	if per := g.CurrentPlayerer(); per != nil {
-		p = per.(*Player)
+func (g *Game) CurrentPlayer() *Player {
+	per := g.CurrentPlayerer()
+	if per != nil {
+		return per.(*Player)
 	}
-	return
+	return nil
 }
 
 func (g *Game) candidates() (cs Players) {

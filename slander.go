@@ -9,6 +9,7 @@ import (
 	"github.com/SlothNinja/log"
 	"github.com/SlothNinja/restful"
 	"github.com/SlothNinja/sn"
+	"github.com/SlothNinja/user"
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,7 +23,7 @@ func (g *Game) SlanderedPlayer() *Player {
 	return g.PlayerByID(g.SlanderedPlayerID)
 }
 
-func (g *Game) slander(c *gin.Context) (tmpl string, act game.ActionType, err error) {
+func (g *Game) slander(c *gin.Context, cu *user.User) (tmpl string, act game.ActionType, err error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
@@ -32,7 +33,7 @@ func (g *Game) slander(c *gin.Context) (tmpl string, act game.ActionType, err er
 		n nationality
 	)
 
-	if p, w, n, err = g.validateSlander(c); err != nil {
+	if p, w, n, err = g.validateSlander(c, cu); err != nil {
 		act = game.None
 		return
 	}
@@ -122,7 +123,7 @@ func (e *secondSlanderEntry) HTML(c *gin.Context) template.HTML {
 		g.NameByPID(e.PlayerID), e.Chip, g.NameByPID(e.OtherPlayerID), e.WardID)
 }
 
-func (g *Game) validateSlander(c *gin.Context) (p *Player, w *Ward, n nationality, err error) {
+func (g *Game) validateSlander(c *gin.Context, cu *user.User) (p *Player, w *Ward, n nationality, err error) {
 	var (
 		cp   *Player
 		nInt int
@@ -133,7 +134,7 @@ func (g *Game) validateSlander(c *gin.Context) (p *Player, w *Ward, n nationalit
 	}
 
 	switch w, cp, n, p = g.getWard(c), g.CurrentPlayer(), nationality(nInt), g.playerBySID(c.PostForm("slandered-player")); {
-	case !g.CUserIsCPlayerOrAdmin(c):
+	case !g.IsCurrentPlayer(cu):
 		err = sn.NewVError("Only the current player can slander another player.")
 	case w == nil:
 		err = sn.NewVError("You must first select a ward.")
@@ -172,7 +173,7 @@ func (p *Player) CanSlanderIn(term int) bool {
 	return p.SlanderChips[term]
 }
 
-func (g *Game) endSlander() {
+func (g *Game) endSlander(cu *user.User) {
 	cp := g.CurrentPlayer()
 	if cp.Slandered == 1 {
 		cp.Slandered = 2

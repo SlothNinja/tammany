@@ -9,6 +9,7 @@ import (
 	"github.com/SlothNinja/log"
 	"github.com/SlothNinja/restful"
 	"github.com/SlothNinja/sn"
+	"github.com/SlothNinja/user"
 	stats "github.com/SlothNinja/user-stats"
 	"github.com/gin-gonic/gin"
 )
@@ -19,25 +20,31 @@ func (client Client) finish(prefix string) gin.HandlerFunc {
 		defer log.Debugf("Exiting")
 
 		g := gameFrom(c)
+		cu, err := client.User.Current(c)
+		if err != nil {
+			log.Errorf(err.Error())
+			c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
+			return
+		}
+
 		oldCP := g.CurrentPlayer()
 
 		var (
-			s   *stats.Stats
-			cs  contest.Contests
-			err error
+			s  *stats.Stats
+			cs contest.Contests
 		)
 
 		switch g.Phase {
 		case actions:
-			s, cs, err = client.actionsPhaseFinishTurn(c, g)
+			s, cs, err = client.actionsPhaseFinishTurn(c, g, cu)
 		case placeImmigrant:
-			s, cs, err = client.placeImmigrantPhaseFinishTurn(c, g)
+			s, cs, err = client.placeImmigrantPhaseFinishTurn(c, g, cu)
 		case takeFavorChip:
-			s, cs, err = client.takeChipPhaseFinishTurn(c, g)
+			s, cs, err = client.takeChipPhaseFinishTurn(c, g, cu)
 		case elections:
-			s, cs, err = client.electionPhaseFinishTurn(c, g)
+			s, cs, err = client.electionPhaseFinishTurn(c, g, cu)
 		case assignCityOffices:
-			s, err = g.assignOfficesPhaseFinishTurn(c)
+			s, err = g.assignOfficesPhaseFinishTurn(c, cu)
 		default:
 			err = sn.NewVError("Improper Phase for finishing turn.")
 		}
@@ -54,7 +61,7 @@ func (client Client) finish(prefix string) gin.HandlerFunc {
 			g.Status = game.Completed
 			s = s.GetUpdate(c, g.UpdatedAt)
 			ks, es := wrap(s, cs)
-			err = client.saveWith(c, g, ks, es)
+			err = client.saveWith(c, g, cu, ks, es)
 			if err != nil {
 				log.Errorf(err.Error())
 				c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
@@ -69,7 +76,7 @@ func (client Client) finish(prefix string) gin.HandlerFunc {
 		}
 
 		s = s.GetUpdate(c, g.UpdatedAt)
-		err = client.saveWith(c, g, []*datastore.Key{s.Key}, []interface{}{s})
+		err = client.saveWith(c, g, cu, []*datastore.Key{s.Key}, []interface{}{s})
 		if err != nil {
 			log.Errorf(err.Error())
 			c.Redirect(http.StatusSeeOther, showPath(prefix, c.Param(hParam)))
@@ -88,7 +95,7 @@ func (client Client) finish(prefix string) gin.HandlerFunc {
 	}
 }
 
-func (g *Game) validateFinishTurn(c *gin.Context) (s *stats.Stats, err error) {
+func (g *Game) validateFinishTurn(c *gin.Context, cu *user.User) (s *stats.Stats, err error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
@@ -97,7 +104,7 @@ func (g *Game) validateFinishTurn(c *gin.Context) (s *stats.Stats, err error) {
 	switch cp, s = g.CurrentPlayer(), stats.Fetched(c); {
 	case s == nil:
 		err = sn.NewVError("missing stats for player.")
-	case !g.CUserIsCPlayerOrAdmin(c):
+	case !g.IsCurrentPlayer(cu):
 		err = sn.NewVError("Only the current player may finish a turn.")
 	case !cp.PerformedAction:
 		err = sn.NewVError("%s has yet to perform an action.", g.NameFor(cp))
@@ -116,11 +123,11 @@ func (g *Game) nextPlayer(ps ...game.Playerer) *Player {
 	return nil
 }
 
-func (client Client) actionsPhaseFinishTurn(c *gin.Context, g *Game) (*stats.Stats, contest.Contests, error) {
+func (client Client) actionsPhaseFinishTurn(c *gin.Context, g *Game, cu *user.User) (*stats.Stats, contest.Contests, error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
-	s, err := g.validateActionsPhaseFinishTurn(c)
+	s, err := g.validateActionsPhaseFinishTurn(c, cu)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -128,7 +135,7 @@ func (client Client) actionsPhaseFinishTurn(c *gin.Context, g *Game) (*stats.Sta
 	cp := g.CurrentPlayer()
 	if g.CanUseOffice(cp) && c.PostForm("action") != "confirm-finish" {
 		g.SubPhase = officeWarning
-		client.Cache.SetDefault(g.UndoKey(c), g)
+		client.Cache.SetDefault(g.UndoKey(c, cu), g)
 		return s, nil, nil
 	}
 
@@ -141,7 +148,7 @@ func (client Client) actionsPhaseFinishTurn(c *gin.Context, g *Game) (*stats.Sta
 	if game.IndexFor(np, g.Playerers) == 0 {
 		switch g.Year() {
 		case 4, 8, 12, 16:
-			cs, err := client.startElections(c, g)
+			cs, err := client.startElections(c, g, cu)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -161,8 +168,8 @@ func (client Client) actionsPhaseFinishTurn(c *gin.Context, g *Game) (*stats.Sta
 	return s, nil, nil
 }
 
-func (g *Game) validateActionsPhaseFinishTurn(c *gin.Context) (*stats.Stats, error) {
-	s, err := g.validateFinishTurn(c)
+func (g *Game) validateActionsPhaseFinishTurn(c *gin.Context, cu *user.User) (*stats.Stats, error) {
+	s, err := g.validateFinishTurn(c, cu)
 	if err != nil {
 		return nil, err
 	}
@@ -172,18 +179,18 @@ func (g *Game) validateActionsPhaseFinishTurn(c *gin.Context) (*stats.Stats, err
 	return s, nil
 }
 
-func (client Client) electionPhaseFinishTurn(c *gin.Context, g *Game) (*stats.Stats, contest.Contests, error) {
+func (client Client) electionPhaseFinishTurn(c *gin.Context, g *Game, cu *user.User) (*stats.Stats, contest.Contests, error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
-	s, err := g.validateElectionPhaseFinishTurn(c)
+	s, err := g.validateElectionPhaseFinishTurn(c, cu)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	restful.AddNoticef(c, "%s finished turn.", g.NameFor(g.CurrentPlayer()))
 
-	cs, err := client.continueElections(c, g)
+	cs, err := client.continueElections(c, g, cu)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -191,12 +198,12 @@ func (client Client) electionPhaseFinishTurn(c *gin.Context, g *Game) (*stats.St
 	return s, cs, nil
 }
 
-func (client Client) continueElections(c *gin.Context, g *Game) (contest.Contests, error) {
+func (client Client) continueElections(c *gin.Context, g *Game, cu *user.User) (contest.Contests, error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
 	// when true election phase is over
-	if !g.electionsTillUnresolved(c) {
+	if !g.electionsTillUnresolved(c, cu) {
 		return nil, nil
 	}
 
@@ -207,93 +214,114 @@ func (client Client) continueElections(c *gin.Context, g *Game) (contest.Contest
 	return client.startCityOfficesPhase(c, g)
 }
 
-func (g *Game) validateElectionPhaseFinishTurn(c *gin.Context) (s *stats.Stats, err error) {
-	if s, err = g.validateFinishTurn(c); g.Phase != elections {
-		err = sn.NewVError(`Expected "Elections" phase but have %q phase.`, g.Phase)
+func (g *Game) validateElectionPhaseFinishTurn(c *gin.Context, cu *user.User) (*stats.Stats, error) {
+	s, err := g.validateFinishTurn(c, cu)
+	switch {
+	case err != nil:
+		return nil, err
+	case g.Phase != elections:
+		return nil, sn.NewVError(`Expected "Elections" phase but have %q phase.`, g.Phase)
+	default:
+		return s, nil
 	}
-	return
 }
 
-func (g *Game) electionsTillUnresolved(c *gin.Context) (done bool) {
+func (g *Game) electionsTillUnresolved(c *gin.Context, cu *user.User) bool {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
 	for _, w := range g.ActiveWards() {
 		if !w.Resolved {
 			if g.CurrentWard() == w {
-				if !g.resolve(c, w) {
-					return
+				if !g.resolve(c, cu, w) {
+					return false
 				}
 			} else {
-				if !g.startElectionIn(c, w) {
-					return
+				if !g.startElectionIn(c, cu, w) {
+					return false
 				}
 			}
 		}
 	}
-	done = true
-	return
+	return true
 }
 
-func (client Client) placeImmigrantPhaseFinishTurn(c *gin.Context, g *Game) (*stats.Stats, contest.Contests, error) {
-	s, err := g.validatePlaceImmigrantPhaseFinishTurn(c)
+func (client Client) placeImmigrantPhaseFinishTurn(c *gin.Context, g *Game, cu *user.User) (*stats.Stats, contest.Contests, error) {
+	s, err := g.validatePlaceImmigrantPhaseFinishTurn(c, cu)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	g.Phase = elections
 	g.CurrentWard().Resolved = true
-	cs, err := client.continueElections(c, g)
+	cs, err := client.continueElections(c, g, cu)
 	if err != nil {
 		return nil, nil, err
 	}
 	return s, cs, nil
 }
 
-func (g *Game) validatePlaceImmigrantPhaseFinishTurn(c *gin.Context) (s *stats.Stats, err error) {
-	if s, err = g.validateFinishTurn(c); g.Phase != placeImmigrant {
-		err = sn.NewVError(`Expected "Place Immigrant" phase but have %q phase.`, g.Phase)
+func (g *Game) validatePlaceImmigrantPhaseFinishTurn(c *gin.Context, cu *user.User) (*stats.Stats, error) {
+	s, err := g.validateFinishTurn(c, cu)
+	switch {
+	case err != nil:
+		return nil, err
+	case g.Phase != placeImmigrant:
+		return nil, sn.NewVError(`Expected "Place Immigrant" phase but have %q phase.`, g.Phase)
+	default:
+		return s, nil
 	}
-	return
 }
 
-func (client Client) takeChipPhaseFinishTurn(c *gin.Context, g *Game) (*stats.Stats, contest.Contests, error) {
-	s, err := g.validateTakeChipPhaseFinishTurn(c)
+func (client Client) takeChipPhaseFinishTurn(c *gin.Context, g *Game, cu *user.User) (*stats.Stats, contest.Contests, error) {
+	s, err := g.validateTakeChipPhaseFinishTurn(c, cu)
 	if err != nil {
 		return nil, nil, err
 	}
 	g.Phase = elections
 	g.CurrentWard().Resolved = true
-	cs, err := client.continueElections(c, g)
+	cs, err := client.continueElections(c, g, cu)
 	if err != nil {
 		return nil, nil, err
 	}
 	return s, cs, nil
 }
 
-func (g *Game) validateTakeChipPhaseFinishTurn(c *gin.Context) (s *stats.Stats, err error) {
-	if s, err = g.validateFinishTurn(c); g.Phase != takeFavorChip {
-		err = sn.NewVError(`Expected "Take Favor Chip" phase but have %q phase.`, g.Phase)
+func (g *Game) validateTakeChipPhaseFinishTurn(c *gin.Context, cu *user.User) (*stats.Stats, error) {
+	s, err := g.validateFinishTurn(c, cu)
+	switch {
+	case err != nil:
+		return nil, err
+	case g.Phase != takeFavorChip:
+		return nil, sn.NewVError(`Expected "Take Favor Chip" phase but have %q phase.`, g.Phase)
+	default:
+		return s, nil
 	}
-	return
 }
 
-func (g *Game) assignOfficesPhaseFinishTurn(c *gin.Context) (s *stats.Stats, err error) {
-	if s, err = g.validateAssignOfficesPhaseFinishTurn(c); err == nil {
+func (g *Game) assignOfficesPhaseFinishTurn(c *gin.Context, cu *user.User) (*stats.Stats, error) {
+	s, err := g.validateAssignOfficesPhaseFinishTurn(c, cu)
+	switch {
+	case err != nil:
+		return nil, err
+	default:
 		restful.AddNoticef(c, "%s finished turn.", g.NameFor(g.CurrentPlayer()))
 
 		g.startNextTerm()
+		return s, nil
 	}
-	return
 }
 
-func (g *Game) validateAssignOfficesPhaseFinishTurn(c *gin.Context) (s *stats.Stats, err error) {
-	switch s, err = g.validateFinishTurn(c); {
+func (g *Game) validateAssignOfficesPhaseFinishTurn(c *gin.Context, cu *user.User) (*stats.Stats, error) {
+	s, err := g.validateFinishTurn(c, cu)
+	switch {
 	case err != nil:
+		return nil, err
 	case g.Phase != assignCityOffices:
-		err = sn.NewVError(`Expected "Assign City Offices" phase but have %q phase.`, g.Phase)
+		return nil, sn.NewVError(`Expected "Assign City Offices" phase but have %q phase.`, g.Phase)
 	case !g.allPlayersHaveOffice():
-		err = sn.NewVError("You must first assign all players an office")
+		return nil, sn.NewVError("You must first assign all players an office")
+	default:
+		return s, nil
 	}
-	return
 }

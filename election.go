@@ -16,7 +16,7 @@ func init() {
 	gob.RegisterName("*game.wonWardEntry", new(wonWardEntry))
 }
 
-func (g *Game) resolve(c *gin.Context, w *Ward) (resolved bool) {
+func (g *Game) resolve(c *gin.Context, cu *user.User, w *Ward) (resolved bool) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
@@ -25,10 +25,6 @@ func (g *Game) resolve(c *gin.Context, w *Ward) (resolved bool) {
 		winner *Player
 	)
 
-	cu, err := user.CurrentFrom(c)
-	if err != nil {
-		log.Debugf(err.Error())
-	}
 	cp := g.CurrentPlayerFor(cu)
 	g.RemoveCurrentPlayers(cp)
 
@@ -145,7 +141,7 @@ func (e *wonWardEntry) HTML(c *gin.Context) template.HTML {
 	return restful.HTML("%s won the election in ward %d.", g.NameByPID(e.PlayerID), e.WardID)
 }
 
-func (g *Game) startElectionIn(c *gin.Context, w *Ward) (resolved bool) {
+func (g *Game) startElectionIn(c *gin.Context, cu *user.User, w *Ward) (resolved bool) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
@@ -173,7 +169,7 @@ func (g *Game) startElectionIn(c *gin.Context, w *Ward) (resolved bool) {
 	}
 
 	if len(g.CurrentPlayers()) == 0 {
-		if resolved = g.resolve(c, w); resolved {
+		if resolved = g.resolve(c, cu, w); resolved {
 			g.setCurrentWard(nil)
 		}
 	}
