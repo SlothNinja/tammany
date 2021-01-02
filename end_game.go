@@ -9,6 +9,7 @@ import (
 	"github.com/SlothNinja/game"
 	"github.com/SlothNinja/restful"
 	"github.com/SlothNinja/send"
+	"github.com/SlothNinja/user"
 	"github.com/gin-gonic/gin"
 	"github.com/mailjet/mailjet-apiv3-go"
 )
@@ -80,8 +81,7 @@ func (g *Game) newAwardFavorChipPointsEntryFor(p *Player) (e *awardFavorChipPoin
 	return
 }
 
-func (e *awardFavorChipPointsEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *awardFavorChipPointsEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	return restful.HTML("%s scored 2 points for %s favor chips.", g.NameByPID(e.PlayerID), e.Chip)
 }
 
@@ -112,8 +112,7 @@ func (g *Game) newAwardSlanderChipPointsEntryFor(p *Player) (e *awardSlanderChip
 	return
 }
 
-func (e *awardSlanderChipPointsEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *awardSlanderChipPointsEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	return restful.HTML("%s scored %v points for unused slander chips.", g.NameByPID(e.PlayerID), e.Scored)
 }
 
@@ -141,8 +140,7 @@ func (g *Game) newAnnounceWinnersEntry() (e *announceTHWinnersEntry) {
 	return
 }
 
-func (e *announceTHWinnersEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *announceTHWinnersEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	names := make([]string, len(g.Winnerers()))
 	for i, winner := range g.Winnerers() {
 		names[i] = g.NameFor(winner)

@@ -8,6 +8,7 @@ import (
 	"github.com/SlothNinja/game"
 	"github.com/SlothNinja/log"
 	"github.com/SlothNinja/restful"
+	"github.com/SlothNinja/user"
 	"github.com/gin-gonic/gin"
 )
 
@@ -75,19 +76,18 @@ type scoreVPEntry struct {
 	ElectionResults *electionResults
 }
 
-func (g *Game) newScoreVPEntry() (e *scoreVPEntry) {
-	e = new(scoreVPEntry)
+func (g *Game) newScoreVPEntry() *scoreVPEntry {
+	e := new(scoreVPEntry)
 	e.Entry = g.newEntry()
 	g.Log = append(g.Log, e)
-	return
+	return e
 }
 
 //func (e *scoreVPEntry) Mayor() *Player {
 //	return e.Game().(*Game).PlayerByID(e.ElectionResults.MayorID)
 //}
 
-func (e *scoreVPEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *scoreVPEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	ts := restful.TemplatesFrom(c)
 	buf := new(bytes.Buffer)
 	tmpl := ts["tammany/score_vp_entry"]

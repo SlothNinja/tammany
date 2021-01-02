@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/SlothNinja/game"
+	"github.com/SlothNinja/user"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,7 +24,7 @@ type Entryer interface {
 	Turn() int
 	Round() int
 	CreatedAt() time.Time
-	HTML(*gin.Context) template.HTML
+	HTML(*gin.Context, *Game, *user.User) template.HTML
 }
 
 func (g *Game) newEntry() (e *Entry) {

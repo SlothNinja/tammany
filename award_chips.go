@@ -7,6 +7,7 @@ import (
 
 	"github.com/SlothNinja/log"
 	"github.com/SlothNinja/restful"
+	"github.com/SlothNinja/user"
 	"github.com/gin-gonic/gin"
 )
 
@@ -52,15 +53,14 @@ func (g *Game) newAwardChipsEntry() (e *awardChipsEntry) {
 	return
 }
 
-func (e *awardChipsEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *awardChipsEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	ts := restful.TemplatesFrom(c)
 	buf := new(bytes.Buffer)
 	tmpl := ts["tammany/award_chips_entry"]
 	if err := tmpl.Execute(buf, gin.H{
 		"entry": e,
 		"g":     g,
-		"ctx":   c,
+		"cu":    cu,
 	}); err != nil {
 		return ""
 	}

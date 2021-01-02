@@ -235,43 +235,40 @@ type placedLockUpMarkerEntry struct {
 	WardID wardID
 }
 
-func (g *Game) newPlacedLockUpMarkerEntryFor(p *Player) (e *placedLockUpMarkerEntry) {
-	e = new(placedLockUpMarkerEntry)
+func (g *Game) newPlacedLockUpMarkerEntryFor(p *Player) *placedLockUpMarkerEntry {
+	e := new(placedLockUpMarkerEntry)
 	e.Entry = g.newEntryFor(p)
 	p.Log = append(p.Log, e)
 	g.Log = append(g.Log, e)
-	return
+	return e
 }
 
-func (e *placedLockUpMarkerEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *placedLockUpMarkerEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	return restful.HTML("%s locked-up ward %d.", g.NameByPID(e.PlayerID), e.WardID)
 }
 
-func (g *Game) validatePlaceLockupMarker(c *gin.Context, cu *user.User) (w *Ward, err error) {
-	var (
-		cp, prez *Player
-	)
-
-	switch w, cp, prez = g.getWard(c), g.CurrentPlayer(), g.councilPresident(); {
+func (g *Game) validatePlaceLockupMarker(c *gin.Context, cu *user.User) (*Ward, error) {
+	w, cp, prez := g.getWard(c), g.CurrentPlayer(), g.councilPresident()
+	switch {
 	case !g.IsCurrentPlayer(cu):
-		err = sn.NewVError("Only the current player can lockup a ward.")
+		return nil, sn.NewVError("Only the current player can lockup a ward.")
 	case w == nil:
-		err = sn.NewVError("You must first select a ward.")
+		return nil, sn.NewVError("You must first select a ward.")
 	case w.LockedUp:
-		err = sn.NewVError("You can't place lockup an already locked ward.")
+		return nil, sn.NewVError("You can't place lockup an already locked ward.")
 	case cp.UsedOffice:
-		err = sn.NewVError("You have already lockedup a ward this year.")
+		return nil, sn.NewVError("You have already lockedup a ward this year.")
 	case cp.hasPlacedOnePiece():
-		err = sn.NewVError("You are in the process of placing pieces (immigrants and/or bosses).  You must use office before or after placing pieces, but not during.")
+		return nil, sn.NewVError("You are in the process of placing pieces (immigrants and/or bosses).  You must use office before or after placing pieces, but not during.")
 	case !g.inActionPhase():
-		err = sn.NewVError("Wrong phase for performing this action.")
+		return nil, sn.NewVError("Wrong phase for performing this action.")
 	case cp.LockedUp >= 2:
-		err = sn.NewVError("You have already lockedup two wards this term.")
+		return nil, sn.NewVError("You have already lockedup two wards this term.")
 	case cp.NotEqual(prez):
-		err = sn.NewVError("You are the %s.  Only the Council President may lockup a ward.", cp.Office)
+		return nil, sn.NewVError("You are the %s.  Only the Council President may lockup a ward.", cp.Office)
+	default:
+		return w, nil
 	}
-	return
 }
 
 func (g *Game) moveFrom(c *gin.Context, cu *user.User) (tmpl string, act game.ActionType, err error) {
@@ -336,7 +333,7 @@ func (g *Game) moveTo(c *gin.Context, cu *user.User) (tmpl string, act game.Acti
 	// Log Placement
 	cp := g.CurrentPlayer()
 	e := g.newMovedImmigrantEntryFor(cp, g.MoveFromWardID, w.ID, n)
-	restful.AddNoticef(c, string(e.HTML(c)))
+	restful.AddNoticef(c, string(e.HTML(c, g, cu)))
 
 	// Move Immigrant To Ward
 	g.endSlander(cu)
@@ -356,47 +353,46 @@ type movedImmigrantEntry struct {
 	Immigrant  nationality
 }
 
-func (g *Game) newMovedImmigrantEntryFor(p *Player, fromID, toID wardID, n nationality) (e *movedImmigrantEntry) {
-	e = new(movedImmigrantEntry)
+func (g *Game) newMovedImmigrantEntryFor(p *Player, fromID, toID wardID, n nationality) *movedImmigrantEntry {
+	e := new(movedImmigrantEntry)
 	e.Entry = g.newEntryFor(p)
 	e.FromWardID = fromID
 	e.ToWardID = toID
 	e.Immigrant = n
 	p.Log = append(p.Log, e)
 	g.Log = append(g.Log, e)
-	return
+	return e
 }
 
-func (e *movedImmigrantEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *movedImmigrantEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	p := g.PlayerByID(e.PlayerID)
 	return restful.HTML("%s moved a %s immigrant from ward %d to ward %d.", g.NameFor(p), e.Immigrant, e.FromWardID, e.ToWardID)
 }
 
-func (g *Game) validateMoveTo(c *gin.Context, cu *user.User) (w *Ward, n nationality, err error) {
-	var cp, chairman *Player
-
-	switch n, w, cp, chairman = getNationality(c), g.getWard(c), g.CurrentPlayer(), g.precinctChairman(); {
+func (g *Game) validateMoveTo(c *gin.Context, cu *user.User) (*Ward, nationality, error) {
+	n, w, cp, chairman := getNationality(c), g.getWard(c), g.CurrentPlayer(), g.precinctChairman()
+	switch {
 	case !g.IsCurrentPlayer(cu):
-		err = sn.NewVError("Only the current player can place a boss.")
+		return nil, noNationality, sn.NewVError("Only the current player can place a boss.")
 	case w == nil:
-		err = sn.NewVError("You must first select a ward.")
+		return nil, noNationality, sn.NewVError("You must first select a ward.")
 	case w.LockedUp:
-		err = sn.NewVError("You can't move an immigrant to a locked ward.")
+		return nil, noNationality, sn.NewVError("You can't move an immigrant to a locked ward.")
 	case cp.UsedOffice:
-		err = sn.NewVError("You have already used your office power.")
+		return nil, noNationality, sn.NewVError("You have already used your office power.")
 	case cp.UsedOffice:
-		err = sn.NewVError("You have already used your office power.")
+		return nil, noNationality, sn.NewVError("You have already used your office power.")
 	case g.Bag[n] <= 0:
-		err = sn.NewVError("The Immigrant Bag does not have a %s cube to place.", n)
+		return nil, noNationality, sn.NewVError("The Immigrant Bag does not have a %s cube to place.", n)
 	case g.ImmigrantInTransit != n:
-		err = sn.NewVError("Expected placement of %s immigrant, but received placement of %s immigrant.", g.ImmigrantInTransit, n)
+		return nil, noNationality, sn.NewVError("Expected placement of %s immigrant, but received placement of %s immigrant.", g.ImmigrantInTransit, n)
 	case chairman != nil && !cp.Equal(chairman):
-		err = sn.NewVError("You are the %s.  Only the Precinct Chairman can move an immigrant between wards.", cp.Office)
+		return nil, noNationality, sn.NewVError("You are the %s.  Only the Precinct Chairman can move an immigrant between wards.", cp.Office)
 	case !w.adjacent(g.moveFromWard()):
-		err = sn.NewVError("Ward %d is not adjacent to ward %d.", w.ID, g.MoveFromWardID)
+		return nil, noNationality, sn.NewVError("Ward %d is not adjacent to ward %d.", w.ID, g.MoveFromWardID)
+	default:
+		return w, n, nil
 	}
-	return
 }
 
 var officeCoords = map[string]string{

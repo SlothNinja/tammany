@@ -112,8 +112,8 @@ type resolvedElectionEntry struct {
 	Contested   bool
 }
 
-func (g *Game) newResolvedElectionEntry(p *Player) (e *resolvedElectionEntry) {
-	e = new(resolvedElectionEntry)
+func (g *Game) newResolvedElectionEntry(p *Player) *resolvedElectionEntry {
+	e := new(resolvedElectionEntry)
 	if p == nil {
 		e.Entry = g.newEntry()
 		e.PlayerID = noPlayerID
@@ -121,7 +121,7 @@ func (g *Game) newResolvedElectionEntry(p *Player) (e *resolvedElectionEntry) {
 		e.Entry = g.newEntryFor(p)
 	}
 	g.Log = append(g.Log, e)
-	return
+	return e
 }
 
 type wonWardEntry struct {
@@ -129,15 +129,14 @@ type wonWardEntry struct {
 	WardID wardID
 }
 
-func (g *Game) newWonWardEntry(p *Player) (e *wonWardEntry) {
-	e = new(wonWardEntry)
+func (g *Game) newWonWardEntry(p *Player) *wonWardEntry {
+	e := new(wonWardEntry)
 	e.Entry = g.newEntryFor(p)
 	p.Log = append(p.Log, e)
-	return
+	return e
 }
 
-func (e *wonWardEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *wonWardEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	return restful.HTML("%s won the election in ward %d.", g.NameByPID(e.PlayerID), e.WardID)
 }
 
@@ -212,15 +211,14 @@ func (w *Ward) playableChipsFor(player *Player) (chips int) {
 	return
 }
 
-func (e *resolvedElectionEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *resolvedElectionEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	ts := restful.TemplatesFrom(c)
 	buf := new(bytes.Buffer)
 	tmpl := ts["tammany/resolved_election_entry"]
 	if err := tmpl.Execute(buf, gin.H{
 		"entry": e,
 		"g":     g,
-		"ctx":   c,
+		"cu":    cu,
 	}); err != nil {
 		return ""
 	}

@@ -6,6 +6,7 @@ import (
 	"html/template"
 
 	"github.com/SlothNinja/restful"
+	"github.com/SlothNinja/user"
 	"github.com/gin-gonic/gin"
 )
 
@@ -62,8 +63,7 @@ func (g *Game) newCastleGardenEntry(p *Player) *castleGardenEntry {
 	return e
 }
 
-func (e *castleGardenEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *castleGardenEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	n := g.NameByPID(e.PlayerID)
 	if !e.Filled {
 		return restful.HTML("%s placed no immigrants in the Castle Garden.", n)

@@ -57,7 +57,7 @@ func (g *Game) slander(c *gin.Context, cu *user.User) (tmpl string, act game.Act
 
 		// Log First Slander
 		e := g.newFirstSlanderEntryFor(cp, w, p, n)
-		restful.AddNoticef(c, string(e.HTML(c)))
+		restful.AddNoticef(c, string(e.HTML(c, g, cu)))
 
 	} else {
 		// Second Slander
@@ -69,7 +69,7 @@ func (g *Game) slander(c *gin.Context, cu *user.User) (tmpl string, act game.Act
 
 		// Log Second Slander
 		e := g.newSecondSlanderEntryFor(cp, w, p, n)
-		restful.AddNoticef(c, string(e.HTML(c)))
+		restful.AddNoticef(c, string(e.HTML(c, g, cu)))
 
 	}
 
@@ -83,19 +83,18 @@ type firstSlanderEntry struct {
 	Chip   nationality
 }
 
-func (g *Game) newFirstSlanderEntryFor(p *Player, w *Ward, op *Player, n nationality) (e *firstSlanderEntry) {
-	e = new(firstSlanderEntry)
+func (g *Game) newFirstSlanderEntryFor(p *Player, w *Ward, op *Player, n nationality) *firstSlanderEntry {
+	e := new(firstSlanderEntry)
 	e.Entry = g.newEntryFor(p)
 	e.WardID = w.ID
 	e.OtherPlayerID = op.ID()
 	e.Chip = n
 	p.Log = append(p.Log, e)
 	g.Log = append(g.Log, e)
-	return
+	return e
 }
 
-func (e *firstSlanderEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *firstSlanderEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	return restful.HTML("%s used an %s favor to slander %s in ward %d",
 		g.NameByPID(e.PlayerID), e.Chip, g.NameByPID(e.OtherPlayerID), e.WardID)
 }
@@ -106,66 +105,63 @@ type secondSlanderEntry struct {
 	Chip   nationality
 }
 
-func (g *Game) newSecondSlanderEntryFor(p *Player, w *Ward, op *Player, n nationality) (e *secondSlanderEntry) {
-	e = new(secondSlanderEntry)
+func (g *Game) newSecondSlanderEntryFor(p *Player, w *Ward, op *Player, n nationality) *secondSlanderEntry {
+	e := new(secondSlanderEntry)
 	e.Entry = g.newEntryFor(p)
 	e.WardID = w.ID
 	e.OtherPlayerID = op.ID()
 	e.Chip = n
 	p.Log = append(p.Log, e)
 	g.Log = append(g.Log, e)
-	return
+	return e
 }
 
-func (e *secondSlanderEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *secondSlanderEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	return restful.HTML("%s used two %s favors to slander %s in ward %d",
 		g.NameByPID(e.PlayerID), e.Chip, g.NameByPID(e.OtherPlayerID), e.WardID)
 }
 
-func (g *Game) validateSlander(c *gin.Context, cu *user.User) (p *Player, w *Ward, n nationality, err error) {
-	var (
-		cp   *Player
-		nInt int
-	)
-
-	if nInt, err = strconv.Atoi(c.PostForm("slander-nationality")); err != nil {
-		return
+func (g *Game) validateSlander(c *gin.Context, cu *user.User) (*Player, *Ward, nationality, error) {
+	nInt, err := strconv.Atoi(c.PostForm("slander-nationality"))
+	if err != nil {
+		return nil, nil, noNationality, err
 	}
 
-	switch w, cp, n, p = g.getWard(c), g.CurrentPlayer(), nationality(nInt), g.playerBySID(c.PostForm("slandered-player")); {
+	w, cp, n, p := g.getWard(c), g.CurrentPlayer(), nationality(nInt), g.playerBySID(c.PostForm("slandered-player"))
+	switch {
 	case !g.IsCurrentPlayer(cu):
-		err = sn.NewVError("Only the current player can slander another player.")
+		return nil, nil, noNationality, sn.NewVError("Only the current player can slander another player.")
 	case w == nil:
-		err = sn.NewVError("You must first select a ward.")
+		return nil, nil, noNationality, sn.NewVError("You must first select a ward.")
 	case w.LockedUp:
-		err = sn.NewVError("You can't slander a player in locked ward.")
+		return nil, nil, noNationality, sn.NewVError("You can't slander a player in locked ward.")
 	case w.Immigrants[n] < 1:
-		err = sn.NewVError("You attempted to slander with a %s chip, but there are no %s immigrants in the selected ward.", n, n)
+		return nil, nil, noNationality, sn.NewVError("You attempted to slander with a %s chip, but there are no %s immigrants in the selected ward.", n, n)
 	case cp.placedPieces() == 1:
-		err = sn.NewVError("You are in the process of placing pieces (immigrants and/or bosses).  You must use office before or after placing pieces, but not during.")
+		return nil, nil, noNationality, sn.NewVError("You are in the process of placing pieces (immigrants and/or bosses).  You must use office before or after placing pieces, but not during.")
 	case g.Phase != actions:
-		err = sn.NewVError("Wrong phase for performing this action.")
+		return nil, nil, noNationality, sn.NewVError("Wrong phase for performing this action.")
 	case g.Term() < 2:
-		err = sn.NewVError("You can't slander in term %d.", g.Term())
+		return nil, nil, noNationality, sn.NewVError("You can't slander in term %d.", g.Term())
 	case g.SlanderNationality == noNationality && cp.Chips[n] < 1:
-		err = sn.NewVError("You don't have a %s favor to use for the slander.", n)
+		return nil, nil, noNationality, sn.NewVError("You don't have a %s favor to use for the slander.", n)
 	case g.SlanderNationality != noNationality && cp.Chips[n] < 2:
-		err = sn.NewVError("You don't have two %s favors to use for the second slander.", n)
+		return nil, nil, noNationality, sn.NewVError("You don't have two %s favors to use for the second slander.", n)
 	case cp.Equal(p):
-		err = sn.NewVError("You can't slander yourself.")
+		return nil, nil, noNationality, sn.NewVError("You can't slander yourself.")
 	case g.SlanderedPlayer() != nil && !g.SlanderedPlayer().Equal(p):
-		err = sn.NewVError("You attempted to slander %s, but you are in the process or slandering %s.", g.NameFor(p), g.NameFor(g.SlanderedPlayer()))
+		return nil, nil, noNationality, sn.NewVError("You attempted to slander %s, but you are in the process or slandering %s.", g.NameFor(p), g.NameFor(g.SlanderedPlayer()))
 	case cp.Slandered == 1 && !w.adjacent(g.CurrentWard()):
-		err = sn.NewVError("Ward %d is not adjacent to ward %d.", w.ID, g.CurrentWardID)
+		return nil, nil, noNationality, sn.NewVError("Ward %d is not adjacent to ward %d.", w.ID, g.CurrentWardID)
 	case cp.Slandered == 1 && g.SlanderNationality != n:
-		err = sn.NewVError("You attempted to slander using %s favors, but you are in the process or slandering using %s favors.", n, g.SlanderNationality)
+		return nil, nil, noNationality, sn.NewVError("You attempted to slander using %s favors, but you are in the process or slandering using %s favors.", n, g.SlanderNationality)
 	case cp.Slandered >= 2:
-		err = sn.NewVError("You have already slandered twice this term.")
+		return nil, nil, noNationality, sn.NewVError("You have already slandered twice this term.")
 	case cp.Slandered == 0 && !cp.CanSlanderIn(g.Term()):
-		err = sn.NewVError("You have already slandered this term.")
+		return nil, nil, noNationality, sn.NewVError("You have already slandered this term.")
+	default:
+		return p, w, n, nil
 	}
-	return
 }
 
 // CanSlanderIn returns true if play can slander in the given term.

@@ -43,7 +43,7 @@ func (g *Game) placePieces(c *gin.Context, cu *user.User) (tmpl string, act game
 	// Log Placement
 	cp := g.CurrentPlayer()
 	e := g.newPlacedPiecesEntryFor(cp, b, n, cnt, w)
-	restful.AddNoticef(c, string(e.HTML(c)))
+	restful.AddNoticef(c, string(e.HTML(c, g, cu)))
 
 	g.endSlander(cu)
 
@@ -137,8 +137,8 @@ type placedPiecesEntry struct {
 	WardID    wardID
 }
 
-func (g *Game) newPlacedPiecesEntryFor(p *Player, b int, n, c nationality, w *Ward) (e *placedPiecesEntry) {
-	e = &placedPiecesEntry{
+func (g *Game) newPlacedPiecesEntryFor(p *Player, b int, n, c nationality, w *Ward) *placedPiecesEntry {
+	e := &placedPiecesEntry{
 		Entry:     g.newEntryFor(p),
 		Bosses:    b,
 		Immigrant: n,
@@ -147,11 +147,10 @@ func (g *Game) newPlacedPiecesEntryFor(p *Player, b int, n, c nationality, w *Wa
 	}
 	p.Log = append(p.Log, e)
 	g.Log = append(g.Log, e)
-	return
+	return e
 }
 
-func (e *placedPiecesEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *placedPiecesEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	var ss []string
 	if e.Bosses > 0 {
 		ss = append(ss, fmt.Sprintf("placed %d %s in ward %d",
@@ -166,16 +165,17 @@ func (e *placedPiecesEntry) HTML(c *gin.Context) template.HTML {
 	return restful.HTML("%s %s.", g.NameByPID(e.PlayerID), restful.ToSentence(ss))
 }
 
-func getBosses(c *gin.Context) (b int, err error) {
-	if v := c.PostForm("bosses"); v != "" {
-		b, err = strconv.Atoi(v)
+func getBosses(c *gin.Context) (int, error) {
+	v := c.PostForm("bosses")
+	if v != "" {
+		return strconv.Atoi(v)
 	}
-	return
+	return 0, nil
 }
 
-func getNationality(c *gin.Context) (n nationality) {
-	n, _ = toNationality[c.PostForm("immigrant")]
-	return
+func getNationality(c *gin.Context) nationality {
+	n, _ := toNationality[c.PostForm("immigrant")]
+	return n
 }
 
 // Legacy Log Entries
@@ -184,17 +184,16 @@ type placedBossesEntry struct {
 	WardID wardID
 }
 
-func (g *Game) newPlacedBossesEntryFor(p *Player, ward *Ward) (e *placedBossesEntry) {
-	e = new(placedBossesEntry)
+func (g *Game) newPlacedBossesEntryFor(p *Player, ward *Ward) *placedBossesEntry {
+	e := new(placedBossesEntry)
 	e.Entry = g.newEntryFor(p)
 	e.WardID = ward.ID
 	p.Log = append(p.Log, e)
 	g.Log = append(g.Log, e)
-	return
+	return e
 }
 
-func (e *placedBossesEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *placedBossesEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	return restful.HTML("%s placed two bosses in ward %d.", g.NameByPID(e.PlayerID), e.WardID)
 }
 
@@ -207,17 +206,16 @@ type placedBossEntry struct {
 	WardID wardID
 }
 
-func (g *Game) newPlacedBossEntryFor(p *Player, w *Ward) (e *placedBossEntry) {
-	e = new(placedBossEntry)
+func (g *Game) newPlacedBossEntryFor(p *Player, w *Ward) *placedBossEntry {
+	e := new(placedBossEntry)
 	e.Entry = g.newEntryFor(p)
 	e.WardID = w.ID
 	p.Log = append(p.Log, e)
 	g.Log = append(g.Log, e)
-	return
+	return e
 }
 
-func (e *placedBossEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *placedBossEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	return restful.HTML("%s placed a boss in ward %d.", g.NameByPID(e.PlayerID), e.WardID)
 }
 
@@ -236,7 +234,7 @@ func (g *Game) removeImmigrant(c *gin.Context, cu *user.User) (tmpl string, act 
 	// Log Placement
 	cp := g.CurrentPlayer()
 	e := g.newRemovedImmigrantEntryFor(cp, w, n)
-	restful.AddNoticef(c, string(e.HTML(c)))
+	restful.AddNoticef(c, string(e.HTML(c, g, cu)))
 
 	// Remove Immigrant
 	g.endSlander(cu)
@@ -255,18 +253,17 @@ type removedImmigrantEntry struct {
 	Immigrant nationality
 }
 
-func (g *Game) newRemovedImmigrantEntryFor(p *Player, w *Ward, n nationality) (e *removedImmigrantEntry) {
-	e = new(removedImmigrantEntry)
+func (g *Game) newRemovedImmigrantEntryFor(p *Player, w *Ward, n nationality) *removedImmigrantEntry {
+	e := new(removedImmigrantEntry)
 	e.Entry = g.newEntryFor(p)
 	e.WardID = w.ID
 	e.Immigrant = n
 	p.Log = append(p.Log, e)
 	g.Log = append(g.Log, e)
-	return
+	return e
 }
 
-func (e *removedImmigrantEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *removedImmigrantEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	return restful.HTML("%s removed a %s immigrant from ward %d.", g.NameByPID(e.PlayerID), e.Immigrant, e.WardID)
 }
 
@@ -305,18 +302,17 @@ type placedImmigrantEntry struct {
 	Immigrant nationality
 }
 
-func (g *Game) newPlacedImmigrantEntryFor(p *Player, w *Ward, n nationality) (e *placedImmigrantEntry) {
-	e = new(placedImmigrantEntry)
+func (g *Game) newPlacedImmigrantEntryFor(p *Player, w *Ward, n nationality) *placedImmigrantEntry {
+	e := new(placedImmigrantEntry)
 	e.Entry = g.newEntryFor(p)
 	e.WardID = w.ID
 	e.Immigrant = n
 	p.Log = append(p.Log, e)
 	g.Log = append(g.Log, e)
-	return
+	return e
 }
 
-func (e *placedImmigrantEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *placedImmigrantEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	return restful.HTML("%s placed a %s immigrant in ward %d.", g.NameByPID(e.PlayerID), e.Immigrant, e.WardID)
 }
 
@@ -330,18 +326,17 @@ type placedBossAndImmigrantEntry struct {
 	Immigrant nationality
 }
 
-func (g *Game) newPlacedBossAndImmigrantEntryFor(p *Player, w *Ward, n nationality) (e *placedBossAndImmigrantEntry) {
-	e = new(placedBossAndImmigrantEntry)
+func (g *Game) newPlacedBossAndImmigrantEntryFor(p *Player, w *Ward, n nationality) *placedBossAndImmigrantEntry {
+	e := new(placedBossAndImmigrantEntry)
 	e.Entry = g.newEntryFor(p)
 	e.WardID = w.ID
 	e.Immigrant = n
 	p.Log = append(p.Log, e)
 	g.Log = append(g.Log, e)
-	return
+	return e
 }
 
-func (e *placedBossAndImmigrantEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *placedBossAndImmigrantEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	return restful.HTML("%s placed a boss and a %s immigrant in ward %d.", g.NameByPID(e.PlayerID), e.Immigrant, e.WardID)
 }
 
@@ -361,7 +356,7 @@ func (g *Game) deputyTakeChip(c *gin.Context, cu *user.User) (tmpl string, act g
 
 	// Log Placement
 	e := g.newTakeChipEntryFor(cp, n)
-	restful.AddNoticef(c, string(e.HTML(c)))
+	restful.AddNoticef(c, string(e.HTML(c, g, cu)))
 
 	tmpl, act = "tammany/place_pieces", game.Cache
 	return
@@ -406,7 +401,7 @@ func (g *Game) takeChip(c *gin.Context, cu *user.User) (tmpl string, act game.Ac
 
 	// Log Placement
 	e := g.newTakeChipEntryFor(cp, n)
-	restful.AddNoticef(c, string(e.HTML(c)))
+	restful.AddNoticef(c, string(e.HTML(c, g, cu)))
 	tmpl, act = "tammany/take_chip_update", game.Cache
 	return
 }
@@ -416,36 +411,35 @@ type takeChipEntry struct {
 	Chip nationality
 }
 
-func (g *Game) newTakeChipEntryFor(p *Player, n nationality) (e *takeChipEntry) {
-	e = new(takeChipEntry)
+func (g *Game) newTakeChipEntryFor(p *Player, n nationality) *takeChipEntry {
+	e := new(takeChipEntry)
 	e.Entry = g.newEntryFor(p)
 	e.Chip = n
 	p.Log = append(p.Log, e)
 	g.Log = append(g.Log, e)
-	return
+	return e
 }
 
-func (e *takeChipEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *takeChipEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	return restful.HTML("%s took a %s favor chip.", g.NameByPID(e.PlayerID), e.Chip)
 }
 
-func (g *Game) validateTakeChip(c *gin.Context, cu *user.User) (n nationality, err error) {
-	var ok bool
-	if n, ok = toNationality[c.PostForm("chip")]; !ok {
-		err = sn.NewVError("Invalid value received for chip nationatlity.")
-		return
+func (g *Game) validateTakeChip(c *gin.Context, cu *user.User) (nationality, error) {
+	n, ok := toNationality[c.PostForm("chip")]
+	if !ok {
+		return noNationality, sn.NewVError("Invalid value received for chip nationatlity.")
 	}
 
 	cp := g.CurrentPlayer()
 
 	switch {
 	case !g.IsCurrentPlayer(cu):
-		err = sn.NewVError("Only the current player can take a chip.")
+		return noNationality, sn.NewVError("Only the current player can take a chip.")
 	case cp.PerformedAction:
-		err = sn.NewVError("You have already performed an action.")
+		return noNationality, sn.NewVError("You have already performed an action.")
 	case g.Phase != takeFavorChip:
-		err = sn.NewVError("You can't take a favour chip in phase %q.", g.PhaseName())
+		return noNationality, sn.NewVError("You can't take a favour chip in phase %q.", g.PhaseName())
+	default:
+		return n, nil
 	}
-	return
 }

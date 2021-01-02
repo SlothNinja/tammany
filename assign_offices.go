@@ -36,18 +36,13 @@ func (client Client) startCityOfficesPhase(c *gin.Context, g *Game) (contest.Con
 	}
 }
 
-func (g *Game) assignOffice(c *gin.Context, cu *user.User) (tmpl string, act game.ActionType, err error) {
+func (g *Game) assignOffice(c *gin.Context, cu *user.User) (string, game.ActionType, error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
-	var (
-		p *Player
-		o office
-	)
-
-	if p, o, err = g.validateAssignOffice(c, cu); err != nil {
-		tmpl, act = "tammany/flash_notice", game.None
-		return
+	p, o, err := g.validateAssignOffice(c, cu)
+	if err != nil {
+		return "tammany/flash_notice", game.None, err
 	}
 
 	p.Office = o
@@ -58,9 +53,8 @@ func (g *Game) assignOffice(c *gin.Context, cu *user.User) (tmpl string, act gam
 
 	// Log Assignment
 	e := g.newAssignedOfficeEntryFor(cp, o, p)
-	restful.AddNoticef(c, string(e.HTML(c)))
-	tmpl, act = "tammany/assign_office", game.Cache
-	return
+	restful.AddNoticef(c, string(e.HTML(c, g, cu)))
+	return "tammany/assign_office", game.Cache, nil
 }
 
 type assignedOfficeEntry struct {
@@ -68,18 +62,17 @@ type assignedOfficeEntry struct {
 	Office office
 }
 
-func (g *Game) newAssignedOfficeEntryFor(p *Player, o office, op *Player) (e *assignedOfficeEntry) {
-	e = new(assignedOfficeEntry)
+func (g *Game) newAssignedOfficeEntryFor(p *Player, o office, op *Player) *assignedOfficeEntry {
+	e := new(assignedOfficeEntry)
 	e.Entry = g.newEntryFor(p)
 	e.Office = o
 	e.OtherPlayerID = op.ID()
 	p.Log = append(p.Log, e)
 	g.Log = append(g.Log, e)
-	return
+	return e
 }
 
-func (e *assignedOfficeEntry) HTML(c *gin.Context) template.HTML {
-	g := gameFrom(c)
+func (e *assignedOfficeEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTML {
 	return restful.HTML("%s assigned %s the office of %s.",
 		g.NameByPID(e.PlayerID), g.NameByPID(e.OtherPlayerID), e.Office)
 }
