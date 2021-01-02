@@ -114,17 +114,17 @@ func (g *Game) validateAssignOffice(c *gin.Context, cu *user.User) (*Player, off
 		return nil, noOffice, sn.NewVError("%s has already been assigned the office of %s", g.NameFor(p), p.Office)
 	case g.Phase == assignDeputyMayor && g.mayor() == nil:
 		return nil, noOffice, sn.NewVError("There is no Mayor to appoint a Deputy Mayor.")
-	case g.Phase == assignDeputyMayor && !cp.isMayor() && !isAdmin(cu):
+	case g.Phase == assignDeputyMayor && !cp.isMayor() && !cu.IsAdmin():
 		return nil, noOffice, sn.NewVError("You are not the Mayor and therefore can't assign offices.")
 	case g.Phase == assignDeputyMayor && o != deputyMayor:
 		return nil, noOffice, sn.NewVError("The mayor must first appoint a Deputy Mayor.")
 	case g.Phase == deputyMayorAssignOffice && g.deputyMayor() == nil:
 		return nil, noOffice, sn.NewVError("There is no Deputy Mayor to assign offices.")
-	case g.Phase == deputyMayorAssignOffice && !cp.isDeputyMayor() && !isAdmin(cu):
+	case g.Phase == deputyMayorAssignOffice && !cp.isDeputyMayor() && !cu.IsAdmin():
 		return nil, noOffice, sn.NewVError("You are not the Deputy Mayor and therefore can't assign offices.")
 	case g.Phase == assignCityOffices && g.mayor() == nil:
 		return nil, noOffice, sn.NewVError("There is no Mayor to assign offices.")
-	case g.Phase == assignCityOffices && !cp.isMayor() && !isAdmin(cu):
+	case g.Phase == assignCityOffices && !cp.isMayor() && !cu.IsAdmin():
 		return nil, noOffice, sn.NewVError("You are not the Mayor and therefore can't assign offices.")
 	default:
 		return p, o, nil

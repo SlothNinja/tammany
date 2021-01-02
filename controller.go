@@ -100,12 +100,12 @@ func (g *Game) update(c *gin.Context, cu *user.User) (string, game.ActionType, e
 	}
 }
 
-func isAdmin(u *user.User) bool {
-	if u == nil {
-		return false
-	}
-	return u.Admin
-}
+// func isAdmin(u *user.User) bool {
+// 	if u == nil {
+// 		return false
+// 	}
+// 	return u.Admin
+// }
 
 func (client Client) show(prefix string) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -122,7 +122,7 @@ func (client Client) show(prefix string) gin.HandlerFunc {
 			"VersionID":  sn.VersionID(),
 			"CUser":      cu,
 			"Game":       g,
-			"IsAdmin":    isAdmin(cu),
+			"IsAdmin":    cu.IsAdmin(),
 			"Admin":      game.AdminFrom(c),
 			"MessageLog": mlog.From(c),
 			"ColorMap":   color.MapFrom(c),
@@ -187,7 +187,7 @@ func (client Client) update(prefix string) gin.HandlerFunc {
 				"Game":      g,
 				"Ward":      wardFrom(c),
 				"Office":    officeFrom(c),
-				"IsAdmin":   isAdmin(cu),
+				"IsAdmin":   cu.IsAdmin(),
 				"Notices":   restful.NoticesFrom(c),
 				"Errors":    restful.ErrorsFrom(c),
 			}
