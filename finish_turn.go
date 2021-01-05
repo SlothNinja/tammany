@@ -27,7 +27,7 @@ func (client Client) finish(prefix string) gin.HandlerFunc {
 			return
 		}
 
-		oldCP := g.CurrentPlayer()
+		oldCP := g.CurrentPlayerFor(cu)
 
 		var (
 			s  *stats.Stats
