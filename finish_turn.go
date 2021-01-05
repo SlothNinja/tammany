@@ -95,23 +95,25 @@ func (client Client) finish(prefix string) gin.HandlerFunc {
 	}
 }
 
-func (g *Game) validateFinishTurn(c *gin.Context, cu *user.User) (s *stats.Stats, err error) {
+func (g *Game) validateFinishTurn(c *gin.Context, cu *user.User) (*stats.Stats, error) {
 	log.Debugf("Entering")
 	defer log.Debugf("Exiting")
 
-	var cp *Player
-
-	switch cp, s = g.CurrentPlayerFor(cu), stats.Fetched(c); {
+	cp, s := g.CurrentPlayerFor(cu), stats.Fetched(c)
+	switch {
 	case s == nil:
-		err = sn.NewVError("missing stats for player.")
-	case !g.IsCurrentPlayer(cu):
-		err = sn.NewVError("Only the current player may finish a turn.")
+		return nil, sn.NewVError("missing stats for player.")
+	case cu == nil:
+		return nil, sn.NewVError("missing current user.")
+	case !cp.IsCurrentUser(cu):
+		return nil, sn.NewVError("Only the current player may finish a turn.")
 	case !cp.PerformedAction:
-		err = sn.NewVError("%s has yet to perform an action.", g.NameFor(cp))
+		return nil, sn.NewVError("%s has yet to perform an action.", cu.Name)
 	case g.ImmigrantInTransit != noNationality:
-		err = sn.NewVError("You must complete move of %s immigrant before finishing turn.", g.ImmigrantInTransit)
+		return nil, sn.NewVError("You must complete move of %s immigrant before finishing turn.", g.ImmigrantInTransit)
+	default:
+		return s, nil
 	}
-	return
 }
 
 // ps is an optional parameter.
@@ -188,7 +190,8 @@ func (client Client) electionPhaseFinishTurn(c *gin.Context, g *Game, cu *user.U
 		return nil, nil, err
 	}
 
-	restful.AddNoticef(c, "%s finished turn.", g.NameFor(g.CurrentPlayer()))
+	// validateElectionPhaseFinishTurn ensures cu != nil
+	restful.AddNoticef(c, "%s finished turn.", cu.Name)
 
 	cs, err := client.continueElections(c, g, cu)
 	if err != nil {
