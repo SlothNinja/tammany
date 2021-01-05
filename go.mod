@@ -20,4 +20,6 @@ require (
 	github.com/gin-gonic/gin v1.6.3
 	github.com/mailjet/mailjet-apiv3-go v0.0.0-20201009050126-c24bc15a9394
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	golang.org/x/sys v0.0.0-20210104204734-6f8348627aad // indirect
+	golang.org/x/tools v0.0.0-20210104081019-d8d6ddbec6ee // indirect
 )

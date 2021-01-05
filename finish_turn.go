@@ -101,7 +101,7 @@ func (g *Game) validateFinishTurn(c *gin.Context, cu *user.User) (s *stats.Stats
 
 	var cp *Player
 
-	switch cp, s = g.CurrentPlayer(), stats.Fetched(c); {
+	switch cp, s = g.CurrentPlayerFor(cu), stats.Fetched(c); {
 	case s == nil:
 		err = sn.NewVError("missing stats for player.")
 	case !g.IsCurrentPlayer(cu):

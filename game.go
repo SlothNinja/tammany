@@ -342,11 +342,12 @@ func (g *Game) candidates() (cs Players) {
 
 // CurrentPlayerFor provides the current player associated with user u.
 // Returns nil if no current player is associate with user u.
-func (g *Game) CurrentPlayerFor(u *user.User) (p *Player) {
-	if per := g.Header.CurrentPlayerFor(g.Playerers, u); per != nil {
-		p = per.(*Player)
+func (g *Game) CurrentPlayerFor(u *user.User) *Player {
+	per := g.Header.CurrentPlayerFor(g.Playerers, u)
+	if per != nil {
+		return per.(*Player)
 	}
-	return
+	return nil
 }
 
 // CurrentPlayers provides the current players of the game.
