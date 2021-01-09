@@ -78,7 +78,7 @@ func (g *Game) CurrentPlayerLinks(cu *user.User) template.HTML {
 
 	var links string
 	for _, cp := range cps {
-		links += fmt.Sprintf("<div style='margin:3px'><img src=%q height='28px' style='vertical-align:middle' /> <span style='vertical-align:middle'>%s</span></div>", cp.bossImagePath(),
+		links += fmt.Sprintf("<div style='margin:3px'><img src=%q height='28px' style='vertical-align:middle' /> <span style='vertical-align:middle'>%s</span></div>", g.bossImagePath(cp, cu),
 			g.PlayerLinkByID(cu, cp.ID()%len(g.Users)))
 	}
 	return template.HTML(links)
