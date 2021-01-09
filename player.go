@@ -348,6 +348,15 @@ func (p *Player) BossImage() template.HTML {
 	return template.HTML(fmt.Sprintf(`<img alt="%s-ward-boss" src="%s" />`, p.Color(), p.bossImagePath()))
 }
 
+func (g *Game) bossImagePath(p *Player, cu *user.User) string {
+	return fmt.Sprintf("/images/tammany/%s-ward-boss.png", g.Color(p, cu))
+}
+
+// BossImage provides html img for a boss of the player.
+func (g *Game) BossImage(p *Player, cu *user.User) template.HTML {
+	return template.HTML(fmt.Sprintf(`<img alt="%s-ward-boss" src="%s" />`, g.Color(p, cu), g.bossImagePath(p, cu)))
+}
+
 // Controlled provides a count of the immigrants of the given nationality in the wards having a boss of the player.
 func (g *Game) ControlledBy(p *Player, n nationality) (cnt int) {
 	for _, w := range g.ActiveWards() {
@@ -451,4 +460,10 @@ func (g *Game) CanSelectWard(u *user.User, w *Ward) bool {
 func (g *Game) CanSelectOffice(u *user.User, o office) bool {
 	return g.IsCurrentPlayerOrAdmin(u) && g.Phase == assignCityOffices && !g.officeAssigned(o) &&
 		!g.allPlayersHaveOffice()
+}
+
+func (g *Game) Color(p *Player, cu *user.User) color.Color {
+	uid := g.UserIDS[p.ID()]
+	cm := g.ColorMapFor(cu)
+	return cm[int(uid)]
 }
