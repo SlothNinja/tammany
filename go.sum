@@ -57,8 +57,8 @@ github.com/SlothNinja/color v1.0.0 h1:f9Arct4YQAUv7c1V85D/kfWVkfMVNk7oh8yd1egVvH
 github.com/SlothNinja/color v1.0.0/go.mod h1:IaWrwdL2faYT6S3a/5TnznlnD8/oKeQS3zNK2ijujro=
 github.com/SlothNinja/contest v1.0.0 h1:fIrtf5fEcujlfGUjJctgLklJlwMOi42IMoXXXgpdGJ4=
 github.com/SlothNinja/contest v1.0.0/go.mod h1:kZni4M2k7cm4j69WkUIGOgJX/js+H02Bg3KpHGe5a5Y=
-github.com/SlothNinja/game v1.0.9 h1:SdDx2BgmSU7dtbcBRiVovmIQEZN+eOrR6BwtTPLoV8M=
-github.com/SlothNinja/game v1.0.9/go.mod h1:ykK4MRSI7GFWXovSWsgy9skfM4yPWkta20vcz7ZgSQ0=
+github.com/SlothNinja/game v1.0.10 h1:HouODZITjkXuy8ehL/1RCK6CdGyOt8f0IQnVrTZsMLw=
+github.com/SlothNinja/game v1.0.10/go.mod h1:taurmUYFljyzSXGbAu2s0mTII32ZalcRw0klYm5iDY4=
 github.com/SlothNinja/gin-render v1.0.0 h1:mxibLS0HX6/Ek7+RcbA2Yvk8VS2wisifuguAgyd+xcY=
 github.com/SlothNinja/gin-render v1.0.0/go.mod h1:tlNalI+QAUXQPOCDxnPF5HkJq/KhhnadKEl/win7Pyw=
 github.com/SlothNinja/glicko v1.0.0 h1:WC/tRr+D+M/NibEBO86IS5IG3y7mTVtU/a4CoMGwGAM=
@@ -290,11 +290,15 @@ github.com/ugorji/go v1.1.7/go.mod h1:kZn38zHttfInRq0xu/PH0az30d+z6vm202qpg1oXVM
 github.com/ugorji/go v1.1.9/go.mod h1:chLrngdsg43geAaeId+nXO57YsDdl5OZqd/QtBiD19g=
 github.com/ugorji/go v1.2.2 h1:60ZHIOcsJlo3bJm9CbTVu7OSqT2mxaEmyQbK2NwCkn0=
 github.com/ugorji/go v1.2.2/go.mod h1:bitgyERdV7L7Db/Z5gfd5v2NQMNhhiFiZwpgMw2SP7k=
+github.com/ugorji/go v1.2.3 h1:WbFSXLxDFKVN69Sk8t+XHGzVCD7R8UoAATR8NqZgTbk=
+github.com/ugorji/go v1.2.3/go.mod h1:5l8GZ8hZvmL4uMdy+mhCO1LjswGRYco9Q3HfuisB21A=
 github.com/ugorji/go/codec v1.1.7 h1:2SvQaVZ1ouYrrKKwoSk2pzd4A9evlKJb9oTL+OaLUSs=
 github.com/ugorji/go/codec v1.1.7/go.mod h1:Ax+UKWsSmolVDwsd+7N3ZtXu+yMGCf907BLYF3GoBXY=
 github.com/ugorji/go/codec v1.1.9/go.mod h1:+SWgpdqOgdW5sBaiDfkHilQ1SxQ1hBkq/R+kHfL7Suo=
 github.com/ugorji/go/codec v1.2.2 h1:08Gah8d+dXj4cZNUHhtuD/S4PXD5WpVbj5B8/ClELAQ=
 github.com/ugorji/go/codec v1.2.2/go.mod h1:OM8g7OAy52uYl3Yk+RE/3AS1nXFn1Wh4PPLtupCxbuU=
+github.com/ugorji/go/codec v1.2.3 h1:/mVYEV+Jo3IZKeA5gBngN0AvNnQltEDkR+eQikkWQu0=
+github.com/ugorji/go/codec v1.2.3/go.mod h1:5FxzDJIgeiWJZslYHPj+LS1dq1ZBQVelZFnjsFGI/Uc=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
@@ -449,8 +453,8 @@ golang.org/x/sys v0.0.0-20201119102817-f84b799fce68/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20201201145000-ef89a241ccb3/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201231184435-2d18734c6014 h1:joucsQqXmyBVxViHCPFjG3hx8JzIFSaym3l3MM/Jsdg=
 golang.org/x/sys v0.0.0-20201231184435-2d18734c6014/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
-golang.org/x/sys v0.0.0-20210108172913-0df2131ae363 h1:wHn06sgWHMO1VsQ8F+KzDJx/JzqfsNLnc+oEi07qD7s=
-golang.org/x/sys v0.0.0-20210108172913-0df2131ae363/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20210110051926-789bb1bd4061 h1:DQmQoKxQWtyybCtX/3dIuDBcAhFszqq8YiNeS6sNu1c=
+golang.org/x/sys v0.0.0-20210110051926-789bb1bd4061/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/term v0.0.0-20201117132131-f5c789dd3221/go.mod h1:Nr5EML6q2oocZ2LXRh80K7BxOlk5/8JxuGnuhpl+muw=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/text v0.0.0-20170915032832-14c0d48ead0c/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
