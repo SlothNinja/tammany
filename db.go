@@ -31,7 +31,7 @@ func newKey(c *gin.Context, id int64) *datastore.Key {
 	return datastore.IDKey("Game", id, pk(c))
 }
 
-func (client Client) init(c *gin.Context, g *Game) error {
+func (client *Client) init(c *gin.Context, g *Game) error {
 	err := client.Game.AfterLoad(c, g.Header)
 	if err != nil {
 		return err
@@ -44,6 +44,6 @@ func (client Client) init(c *gin.Context, g *Game) error {
 	return nil
 }
 
-func (client Client) afterCache(c *gin.Context, g *Game) error {
+func (client *Client) afterCache(c *gin.Context, g *Game) error {
 	return client.init(c, g)
 }

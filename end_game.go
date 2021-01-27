@@ -20,7 +20,7 @@ func init() {
 	gob.RegisterName("*game.announceTHWinnersEntry", new(announceTHWinnersEntry))
 }
 
-func (client Client) startEndGamePhase(c *gin.Context, g *Game) (contest.Contests, error) {
+func (client *Client) startEndGamePhase(c *gin.Context, g *Game) ([]*contest.Contest, error) {
 	g.Phase = endGameScoring
 	g.awardFavorChipPoints()
 	g.awardSlanderChipPoints()

@@ -9,8 +9,8 @@ import (
 )
 
 func (g *Game) adminState(c *gin.Context) (string, game.ActionType, error) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 
 	h := struct {
 		Title         string           `form:"title"`
@@ -78,8 +78,8 @@ func newChips() *chips {
 }
 
 func (g *Game) adminPlayer(c *gin.Context) (string, game.ActionType, error) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 	obj := struct {
 		PlacedBosses     int   `form:"placed-bosses"`
 		PlacedImmigrants int   `form:"placed-immigrants"`
@@ -120,8 +120,8 @@ func (g *Game) adminPlayer(c *gin.Context) (string, game.ActionType, error) {
 }
 
 func (g *Game) adminWard(c *gin.Context) (string, game.ActionType, error) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 
 	w2 := struct {
 		ID       wardID `form:"ward-id"`
@@ -160,8 +160,8 @@ func (g *Game) adminWard(c *gin.Context) (string, game.ActionType, error) {
 }
 
 func (g *Game) adminCastleGarden(c *gin.Context) (string, game.ActionType, error) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 
 	cg := struct {
 		Irish   int `form:"Irish"`
@@ -188,8 +188,8 @@ func (g *Game) adminCastleGarden(c *gin.Context) (string, game.ActionType, error
 }
 
 func (g *Game) adminImmigrantBag(c *gin.Context) (string, game.ActionType, error) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 
 	cg := struct {
 		Irish   int `form:"Irish"`

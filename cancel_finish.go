@@ -9,8 +9,8 @@ import (
 )
 
 func (g *Game) cancelFinish(c *gin.Context, cu *user.User) (string, game.ActionType, error) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 
 	err := g.validateCancelFinish(c, cu)
 	if err != nil {

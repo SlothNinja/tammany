@@ -13,8 +13,8 @@ import (
 )
 
 func (g *Game) bid(c *gin.Context, cu *user.User) (string, game.ActionType, error) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 
 	err := g.validateBid(c, cu)
 	if err != nil {
@@ -41,8 +41,8 @@ func (g *Game) bid(c *gin.Context, cu *user.User) (string, game.ActionType, erro
 }
 
 func (g *Game) validateBid(c *gin.Context, cu *user.User) error {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 
 	if !g.IsCurrentPlayer(cu) {
 		return sn.NewVError("Only the current player can place a bid.")

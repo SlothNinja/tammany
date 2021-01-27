@@ -17,8 +17,8 @@ func init() {
 }
 
 func (g *Game) resolve(c *gin.Context, cu *user.User, w *Ward) (resolved bool) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 
 	var (
 		cnt    int
@@ -141,8 +141,8 @@ func (e *wonWardEntry) HTML(c *gin.Context, g *Game, cu *user.User) template.HTM
 }
 
 func (g *Game) startElectionIn(c *gin.Context, cu *user.User, w *Ward) (resolved bool) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 
 	g.setCurrentWard(w)
 	g.setCurrentPlayers()

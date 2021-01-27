@@ -17,9 +17,9 @@ func init() {
 	gob.RegisterName("*game.assignedOfficeEntry", new(assignedOfficeEntry))
 }
 
-func (client Client) startCityOfficesPhase(c *gin.Context, g *Game) (contest.Contests, error) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+func (client *Client) startCityOfficesPhase(c *gin.Context, g *Game) ([]*contest.Contest, error) {
+	client.Log.Debugf(msgEnter)
+	defer client.Log.Debugf(msgExit)
 
 	for _, player := range g.Players() {
 		g.beginningOfTurnResetFor(player)
@@ -37,8 +37,8 @@ func (client Client) startCityOfficesPhase(c *gin.Context, g *Game) (contest.Con
 }
 
 func (g *Game) assignOffice(c *gin.Context, cu *user.User) (string, game.ActionType, error) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 
 	p, o, err := g.validateAssignOffice(c, cu)
 	if err != nil {
@@ -91,8 +91,8 @@ func (p *Player) hasAnOffice() bool {
 }
 
 func (g *Game) validateAssignOffice(c *gin.Context, cu *user.User) (*Player, office, error) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 
 	cp := g.CurrentPlayer()
 

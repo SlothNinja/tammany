@@ -16,8 +16,8 @@ func init() {
 }
 
 func (g *Game) startAwardChipsPhase(c *gin.Context) {
-	log.Debugf("Entering")
-	defer log.Debugf("Entering")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 
 	g.Phase = awardFavorChips
 	g.awardChips()

@@ -16,10 +16,10 @@ import (
 )
 
 // Register registers Tammany Hall with the server.
-func (client Client) Register(t gtype.Type, r *gin.Engine) *gin.Engine {
+func (client *Client) register(t gtype.Type) *Client {
 	gob.Register(new(Game))
 	game.Register(t, newGamer, phaseNames, nil)
-	return client.addRoutes(t.Prefix(), r)
+	return client.addRoutes(t.Prefix())
 }
 
 const noPlayerID = game.NoPlayerID
@@ -159,8 +159,8 @@ func (g *Game) setYear(y int) {
 type Games []*Game
 
 func (g *Game) start(c *gin.Context) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 
 	g.Status = game.Running
 	g.Phase = setup
@@ -210,9 +210,9 @@ func (g *Game) actionsPhase() {
 	g.Phase = actions
 }
 
-func (client Client) startElections(c *gin.Context, g *Game, cu *user.User) (contest.Contests, error) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+func (client *Client) startElections(c *gin.Context, g *Game, cu *user.User) ([]*contest.Contest, error) {
+	client.Log.Debugf(msgEnter)
+	defer client.Log.Debugf(msgExit)
 
 	g.Phase = elections
 	g.SubPhase = noSubPhase

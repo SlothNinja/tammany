@@ -24,8 +24,8 @@ func (g *Game) SlanderedPlayer() *Player {
 }
 
 func (g *Game) slander(c *gin.Context, cu *user.User) (tmpl string, act game.ActionType, err error) {
-	log.Debugf("Entering")
-	defer log.Debugf("Exiting")
+	log.Debugf(msgEnter)
+	defer log.Debugf(msgExit)
 
 	var (
 		p *Player
