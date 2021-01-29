@@ -27,15 +27,9 @@ func (g *Game) slander(c *gin.Context, cu *user.User) (tmpl string, act game.Act
 	log.Debugf(msgEnter)
 	defer log.Debugf(msgExit)
 
-	var (
-		p *Player
-		w *Ward
-		n nationality
-	)
-
-	if p, w, n, err = g.validateSlander(c, cu); err != nil {
-		act = game.None
-		return
+	p, w, n, err := g.validateSlander(c, cu)
+	if err != nil {
+		return "tammany/flash_notice", game.None, err
 	}
 
 	// Log Placement
@@ -124,13 +118,16 @@ func (e *secondSlanderEntry) HTML(c *gin.Context, g *Game, cu *user.User) templa
 func (g *Game) validateSlander(c *gin.Context, cu *user.User) (*Player, *Ward, nationality, error) {
 	nInt, err := strconv.Atoi(c.PostForm("slander-nationality"))
 	if err != nil {
-		return nil, nil, noNationality, err
+		log.Debugf(err.Error())
+		return nil, nil, noNationality, sn.NewVError("you must select a chip to play")
 	}
 
 	w, cp, n, p := g.getWard(c), g.CurrentPlayer(), nationality(nInt), g.playerBySID(c.PostForm("slandered-player"))
 	switch {
 	case !g.IsCurrentPlayer(cu):
 		return nil, nil, noNationality, sn.NewVError("Only the current player can slander another player.")
+	case n == noNationality:
+		return nil, nil, noNationality, sn.NewVError("You must select a favor chip with which to slandar.")
 	case w == nil:
 		return nil, nil, noNationality, sn.NewVError("You must first select a ward.")
 	case w.LockedUp:
@@ -147,6 +144,8 @@ func (g *Game) validateSlander(c *gin.Context, cu *user.User) (*Player, *Ward, n
 		return nil, nil, noNationality, sn.NewVError("You don't have a %s favor to use for the slander.", n)
 	case g.SlanderNationality != noNationality && cp.Chips[n] < 2:
 		return nil, nil, noNationality, sn.NewVError("You don't have two %s favors to use for the second slander.", n)
+	case p == nil:
+		return nil, nil, noNationality, sn.NewVError("You must select a player to slander.")
 	case cp.Equal(p):
 		return nil, nil, noNationality, sn.NewVError("You can't slander yourself.")
 	case g.SlanderedPlayer() != nil && !g.SlanderedPlayer().Equal(p):

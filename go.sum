@@ -39,6 +39,8 @@ cloud.google.com/go/datastore v1.4.0 h1:CFDJm15RpYXeEblQ0TMDUrYtqmBmbAWTy536nA8J
 cloud.google.com/go/datastore v1.4.0/go.mod h1:d18825/a9bICdAIJy2EkHs9joU4RlIZ1t6l8WDdbdY0=
 cloud.google.com/go/logging v1.1.2 h1:KNALX0NZn8UJhqKnqoHxhMqyoZfBZoh5wF7CQJZ5XrU=
 cloud.google.com/go/logging v1.1.2/go.mod h1:KrljuAHIw631j9+QXsnq9vDwsrwmdxfGpivMR68M7DY=
+cloud.google.com/go/logging v1.2.0 h1:YQgGHetngci67X1Iby1/xvYc23AB5ZTvf/S/kQBaLuY=
+cloud.google.com/go/logging v1.2.0/go.mod h1:eefltkCUQrHz8MFKQk3jXusVNJAWvJzi97xCrh3yeM8=
 cloud.google.com/go/pubsub v1.0.1/go.mod h1:R0Gpsv3s54REJCy4fxDixWD93lHJMoZTyQ2kNxGRt3I=
 cloud.google.com/go/pubsub v1.1.0/go.mod h1:EwwdRX2sKPjnvnqCa270oGRyludottCI76h+R3AArQw=
 cloud.google.com/go/pubsub v1.2.0 h1:Lpy6hKgdcl7a3WGSfJIFmxmcdjSpP6OmBEfcOv1Y680=
@@ -63,8 +65,8 @@ github.com/SlothNinja/color v1.0.0 h1:f9Arct4YQAUv7c1V85D/kfWVkfMVNk7oh8yd1egVvH
 github.com/SlothNinja/color v1.0.0/go.mod h1:IaWrwdL2faYT6S3a/5TnznlnD8/oKeQS3zNK2ijujro=
 github.com/SlothNinja/contest v1.0.1 h1:J1dPbC65r1yjGbDJNEHCd3AqpzNjWZL2FgT7WMP239s=
 github.com/SlothNinja/contest v1.0.1/go.mod h1:gpYcIHumsISHSCI9v+aOkGFoEujVI7ZVK6hR2yROdGY=
-github.com/SlothNinja/game v1.0.14 h1:fIl6DMV0LpzUFhM880PIlWT4xgTYjZkDvkcWYRH2oN8=
-github.com/SlothNinja/game v1.0.14/go.mod h1:WoAqg5eXqQ1wYzHPk7g/oQi78kCS0D+nfuyhs2w35JE=
+github.com/SlothNinja/game v1.0.15 h1:pZSdsvUAkKl3Wfyrv14oqTPHbFC4JbzP1iiFhNu/8mg=
+github.com/SlothNinja/game v1.0.15/go.mod h1:R+2dwIORBieItEgCqp1hCc27uH8uuXlIEootulwAzP8=
 github.com/SlothNinja/gin-render v1.0.0 h1:mxibLS0HX6/Ek7+RcbA2Yvk8VS2wisifuguAgyd+xcY=
 github.com/SlothNinja/gin-render v1.0.0/go.mod h1:tlNalI+QAUXQPOCDxnPF5HkJq/KhhnadKEl/win7Pyw=
 github.com/SlothNinja/glicko v1.0.0 h1:WC/tRr+D+M/NibEBO86IS5IG3y7mTVtU/a4CoMGwGAM=
@@ -77,8 +79,6 @@ github.com/SlothNinja/log v1.0.2 h1:akUp5ofd5Yb/5+K42/vPer2FiSpVfRhCqIDCNQiEcns=
 github.com/SlothNinja/log v1.0.2/go.mod h1:ERX7qO0ujhvJVnncp2i1b1FOLptERQV1a/k/oZcKYMk=
 github.com/SlothNinja/mlog v1.0.3 h1:6QZup4L4dczvchyjqPmnEZbZfbuMmrl/vLItKnQp4Gc=
 github.com/SlothNinja/mlog v1.0.3/go.mod h1:Zq5JqVl0KamWtTb5RSUdYiM7O/nciwo4GDtg6tGTJoI=
-github.com/SlothNinja/rating v1.0.6 h1:swKz8ohcHrEawDntBZNbH0I7J+2Qmo8VJMq6wtZDWd0=
-github.com/SlothNinja/rating v1.0.6/go.mod h1:Nsqcvx6OqVD9nzuizmuGrdYHACmprsVDu8FfuTuyELE=
 github.com/SlothNinja/rating v1.0.7 h1:m3/dstqJMs6CcEcevZaoNaDYh4za/RgH12Ibv+x2Mq0=
 github.com/SlothNinja/rating v1.0.7/go.mod h1:Nsqcvx6OqVD9nzuizmuGrdYHACmprsVDu8FfuTuyELE=
 github.com/SlothNinja/restful v1.0.0 h1:Qcozj0/B5wLSAOec2qqphCXmAiBW3yr3LzEcYEaJBFA=
@@ -631,6 +631,7 @@ google.golang.org/genproto v0.0.0-20210108203827-ffc7fda8c3d7 h1:n7yjMkxUgbEahYE
 google.golang.org/genproto v0.0.0-20210108203827-ffc7fda8c3d7/go.mod h1:FWY/as6DDZQgahTzZj3fqbO1CbirC29ZNUFHwi0/+no=
 google.golang.org/genproto v0.0.0-20210113195801-ae06605f4595/go.mod h1:FWY/as6DDZQgahTzZj3fqbO1CbirC29ZNUFHwi0/+no=
 google.golang.org/genproto v0.0.0-20210114201628-6edceaf6022f/go.mod h1:FWY/as6DDZQgahTzZj3fqbO1CbirC29ZNUFHwi0/+no=
+google.golang.org/genproto v0.0.0-20210122163508-8081c04a3579/go.mod h1:FWY/as6DDZQgahTzZj3fqbO1CbirC29ZNUFHwi0/+no=
 google.golang.org/genproto v0.0.0-20210126160654-44e461bb6506 h1:uLBY0yHDCj2PMQ98KWDSIDFwn9zK2zh+tgWtbvPPBjI=
 google.golang.org/genproto v0.0.0-20210126160654-44e461bb6506/go.mod h1:FWY/as6DDZQgahTzZj3fqbO1CbirC29ZNUFHwi0/+no=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=

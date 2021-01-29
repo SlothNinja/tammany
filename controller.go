@@ -132,8 +132,7 @@ func (client *Client) show(prefix string) gin.HandlerFunc {
 
 		cu, err := client.User.Current(c)
 		if err != nil {
-			client.Log.Errorf(err.Error())
-			return
+			client.Log.Debugf(err.Error())
 		}
 
 		c.HTML(http.StatusOK, prefix+"/show", gin.H{
