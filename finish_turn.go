@@ -104,7 +104,7 @@ func (g *Game) validateFinishTurn(c *gin.Context, cu *user.User) (*user.Stats, e
 		return nil, sn.NewVError("missing stats for player.")
 	case cu == nil:
 		return nil, sn.NewVError("missing current user.")
-	case !cp.IsCurrentUser(cu):
+	case cp == nil || !cp.IsCurrentUser(cu):
 		return nil, sn.NewVError("Only the current player may finish a turn.")
 	case !cp.PerformedAction:
 		return nil, sn.NewVError("%s has yet to perform an action.", cu.Name)

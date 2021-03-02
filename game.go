@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"html/template"
+	"math/rand"
 
 	"github.com/SlothNinja/contest"
 	"github.com/SlothNinja/game"
@@ -165,8 +166,8 @@ func (g *Game) start(c *gin.Context) {
 	g.Status = game.Running
 	g.Phase = setup
 
-	for i, u := range g.Users {
-		g.addNewPlayer(u, i)
+	for i := range g.UserIDS {
+		g.addNewPlayer(i)
 	}
 
 	g.RandomTurnOrder()
@@ -182,8 +183,8 @@ func (g *Game) start(c *gin.Context) {
 	g.castleGardenPhase()
 }
 
-func (g *Game) addNewPlayer(u *user.User, id int) {
-	p := createPlayer(g, u, id)
+func (g *Game) addNewPlayer(id int) {
+	p := createPlayer(g, id)
 	g.Playerers = append(g.Playerers, p)
 }
 
@@ -364,5 +365,17 @@ func (g *Game) newTurnOrder(c *gin.Context) {
 		playersTwice := append(g.Players(), g.Players()...)
 		newOrder := playersTwice[index : index+g.NumPlayers]
 		g.setPlayers(newOrder)
+	}
+}
+
+func (g *Game) RandomTurnOrder() {
+	rand.Shuffle(len(g.Playerers), func(i, j int) {
+		g.Playerers[i], g.Playerers[j] = g.Playerers[j], g.Playerers[i]
+	})
+	g.SetCurrentPlayerers(g.Playerers[0])
+
+	g.OrderIDS = make(game.UserIndices, len(g.Playerers))
+	for i, p := range g.Playerers {
+		g.OrderIDS[i] = p.ID()
 	}
 }

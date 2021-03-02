@@ -316,7 +316,7 @@ func newPlayer() (p *Player) {
 	return
 }
 
-func createPlayer(g *Game, u *user.User, id int) (p *Player) {
+func createPlayer(g *Game, id int) (p *Player) {
 	p = newPlayer()
 	p.SetID(id)
 	p.SetGame(g)
