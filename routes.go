@@ -17,12 +17,12 @@ type Client struct {
 	Rating *rating.Client
 }
 
-func NewClient(snClient *sn.Client, uClient *user.Client, gClient *game.Client, mClient *mlog.Client, rClient *rating.Client, t gtype.Type) *Client {
+func NewClient(snClient *sn.Client, uClient *user.Client, gClient *game.Client, rClient *rating.Client, t gtype.Type) *Client {
 	client := &Client{
 		Client: snClient,
 		User:   uClient,
 		Game:   gClient,
-		MLog:   mClient,
+		MLog:   mlog.NewClient(snClient, uClient),
 		Rating: rClient,
 	}
 	return client.register(t)
